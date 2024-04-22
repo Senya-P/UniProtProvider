@@ -1,6 +1,7 @@
 module UniProtProviderTests
 
 open MyNamespace
+open UniProtProvider
 open NUnit.Framework
 type Assert() =
     static member AreEqual(a, b) = if a <> b then failwith "oops"
@@ -21,6 +22,8 @@ let ``Method with ReflectedDefinition parameter should get its name`` () =
 type Generative2 = MyNamespace.GenerativeProvider<2>
 type Generative4 = MyNamespace.GenerativeProvider<4>
 type Type = MyNamespace.MyType
+
+//type UniParc = UniParcProvider<"">
 
 let ds = Generative2.StaticMethod()
 

@@ -8,6 +8,7 @@
     <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\UniProtProvider.DesignTime\UniProtProvider.DesignTime.fsproj" />
     <ProjectReference Include="..\..\src\UniProtProvider.Runtime\UniProtProvider.Runtime.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

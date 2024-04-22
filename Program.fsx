@@ -1,9 +1,10 @@
 #r "src/UniProtProvider.DesignTime/bin/Debug/netstandard2.1/UniProtProvider.DesignTime.dll"
+
 open UniProtProvider
 
 let [<Literal>] seq  = "UPI000000000A"
 
-type Uniparc = UniparcProvider<seq>
+type Uniparc = UniParcProvider<seq>
 
 (*
 let obj = Uniparc

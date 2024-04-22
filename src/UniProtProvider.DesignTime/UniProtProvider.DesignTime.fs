@@ -1,4 +1,4 @@
-module UniProtProviderImplementation
+namespace UniProtProvider.DesignTime
 
 open System
 open System.Collections.Generic
@@ -9,6 +9,8 @@ open FSharp.Core.CompilerServices
 open MyNamespace
 open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
+open TypeGenerator
+
 
 // Put any utility helpers here
 [<AutoOpen>]
@@ -101,30 +103,28 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
 // provider that accepts the whole UniProt id as a parameter -> exactly one entity
 // add generating by word (or part of it) -> list of entities
 [<TypeProvider>]
-type UniparcProvider (config : TypeProviderConfig) as this =
+type UniParcProvider (config : TypeProviderConfig) as this =
     inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("UniProtProvider.DesignTime", "UniProtProvider.Runtime")])
-
     let ns = "UniProtProvider"
     let asm = Assembly.GetExecutingAssembly()
-
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)  
 
-    let buildAssemblyType (typeName: string) (seq: string) =
+    let buildAssemblyType (typeName: string) (id: string) =
         let asm = ProvidedAssembly()
-        let myType = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
+        let uniParc = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
         // args.[0] :?> string - dynamic cast
-
+        let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ genType id :> obj @@>)
+        uniParc.AddMember(ctor)
         // get query
         // parse query
         // myType.AddMember(prop) for each property + nested, some of them can be types themselves(?)
+        asm.AddTypes [ uniParc ]
+        uniParc
 
-        asm.AddTypes [ myType ]
-        myType
-
-    let assemblyProvidedType = ProvidedTypeDefinition(asm, ns, "UniparcProvider", Some typeof<obj>, isErased=false)
+    let assemblyProvidedType = ProvidedTypeDefinition(asm, ns, "UniParcProvider", Some typeof<obj>, isErased=false)
     let assemblyParam = ProvidedStaticParameter("ID", typeof<string>, parameterDefaultValue = "")
-
+    
     do assemblyProvidedType.DefineStaticParameters([assemblyParam], fun typeName args -> buildAssemblyType typeName (unbox<string> args.[0]))
 
     do this.AddNamespace(ns, [assemblyProvidedType])
