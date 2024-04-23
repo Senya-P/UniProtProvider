@@ -10,6 +10,7 @@ open MyNamespace
 open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
 open TypeGenerator
+open Microsoft.FSharp.Reflection
 
 
 // Put any utility helpers here
@@ -113,11 +114,13 @@ type UniParcProvider (config : TypeProviderConfig) as this =
     let buildAssemblyType (typeName: string) (id: string) =
         let asm = ProvidedAssembly()
         let uniParc = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
-        // args.[0] :?> string - dynamic cast
-        let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ genType id :> obj @@>)
-        uniParc.AddMember(ctor)
-        // get query
-        // parse query
+        let protSeq = genType id
+        let props = protSeq.GetType().GetProperties()
+        for i in props do
+            let prop = ProvidedProperty(i.Name, i.GetType(), getterCode = fun args -> <@@ i.GetValue(protSeq) @@>)
+            uniParc.AddMember(prop)
+        //let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ "genType id":> obj @@>)
+        //uniParc.AddMember(ctor)
         // myType.AddMember(prop) for each property + nested, some of them can be types themselves(?)
         asm.AddTypes [ uniParc ]
         uniParc

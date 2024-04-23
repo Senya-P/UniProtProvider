@@ -1,11 +1,13 @@
 namespace UniProtProvider.DesignTime
-open ProviderImplementation.ProvidedTypes
-open Newtonsoft.Json
-
-[<AutoOpen>]
+open FSharp.Json
+open System.Net.Http
 module TypeGenerator =
 
-    type ProtSeq = 
+    type Result = 
+        {
+            results : array<ProtSeq>
+        }
+    and ProtSeq = 
         {
             uniParcId : string
             uniParcCrossReferences: obj
@@ -36,12 +38,19 @@ module TypeGenerator =
         }
     and Location = 
         {
-            starts : int
-            ends : int
+            start : int
+            ``end`` : int
         }
+    let request (query: string) =
+        let client = new HttpClient()
+        let response = client.GetStringAsync(query)
+        response.Result
 
     let genType (id: string) =
         let parts = [| "https://rest.uniprot.org/uniparc/search?query="; id; "&format=json" |]
         let query = System.String.Concat(parts)
-        let protSeq = JsonConvert.DeserializeObject<ProtSeq>(query)
-        protSeq
+        let config = JsonConfig.create(allowUntyped = true)
+        let json = request query
+        let protSeq = Json.deserializeEx<Result> config json
+        protSeq.results[0]
+
