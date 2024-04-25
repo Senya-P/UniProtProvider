@@ -115,12 +115,16 @@ type UniParcProvider (config : TypeProviderConfig) as this =
         let asm = ProvidedAssembly()
         let uniParc = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
         let protSeq = genType id
-        let props = protSeq.GetType().GetProperties()
-        for i in props do
-            let prop = ProvidedProperty(i.Name, i.GetType(), getterCode = fun args -> <@@ i.GetValue(protSeq) @@>)
+        let getPropertyNames (s : System.Type)=
+            Seq.map (fun (t:System.Reflection.PropertyInfo) -> t.Name) (s.GetProperties())
+
+        let names = getPropertyNames (typeof<ProtSeq>)
+        for i in names do
+            let prop = ProvidedProperty(i, i.GetType(), getterCode = fun args -> <@@ i @@>)
             uniParc.AddMember(prop)
-        //let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ "genType id":> obj @@>)
-        //uniParc.AddMember(ctor)
+
+        let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ "genType id":> obj @@>)
+        uniParc.AddMember(ctor)
         // myType.AddMember(prop) for each property + nested, some of them can be types themselves(?)
         asm.AddTypes [ uniParc ]
         uniParc

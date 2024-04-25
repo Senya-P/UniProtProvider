@@ -5,6 +5,8 @@ open UniProtProvider
 let [<Literal>] seq  = "UPI000000000A"
 
 type Uniparc = UniParcProvider<seq>
+let  obj = Uniparc().uniParcId
+printf "%s\n"obj
 
 (*
 let obj = Uniparc
