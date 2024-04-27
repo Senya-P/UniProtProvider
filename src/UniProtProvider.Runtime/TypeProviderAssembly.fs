@@ -1,4 +1,4 @@
-namespace MyNamespace
+namespace UniProtProvider.RunTime
 
 open FSharp.Core.CompilerServices
 
