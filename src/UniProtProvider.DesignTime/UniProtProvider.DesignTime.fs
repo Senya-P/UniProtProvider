@@ -6,10 +6,10 @@ open System.IO
 open System.Reflection
 open FSharp.Quotations
 open FSharp.Core.CompilerServices
-open MyNamespace
+open UniProtProvider.RunTime
+open TypeGenerator
 open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
-open TypeGenerator
 open Microsoft.FSharp.Reflection
 
 
@@ -111,28 +111,41 @@ type UniParcProvider (config : TypeProviderConfig) as this =
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)  
 
-    let buildAssemblyType (typeName: string) (id: string) =
+    let buildType  (typeName: string) =
         let asm = ProvidedAssembly()
         let uniParc = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
-        let protSeq = genType id
+        let ctor = ProvidedConstructor([ProvidedParameter("uniParcId", typeof<string>)], invokeCode = fun args -> <@@ (%%(args[1]) : String) :> obj @@>)
+        uniParc.AddMember(ctor)
+
+        (*
+        let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ "" :> obj @@>)
+        uniParc.AddMember(ctor)
+
+        let retrieveById = ProvidedMethod("ById", 
+            [ProvidedParameter("UniParcId", typeof<string>)], 
+            typeof<obj>, 
+            isStatic=true, 
+            invokeCode = (fun args -> <@@ (* genType (%%(args[0])) *)(%%(args[0]) : String) :> obj @@>))
+        uniParc.AddMember(retrieveById)
+        *)
+
         let getPropertyNames (s : System.Type)=
             Seq.map (fun (t:System.Reflection.PropertyInfo) -> t.Name) (s.GetProperties())
 
         let names = getPropertyNames (typeof<ProtSeq>)
         for i in names do
-            let prop = ProvidedProperty(i, i.GetType(), getterCode = fun args -> <@@ i @@>)
-            uniParc.AddMember(prop)
+            let prop = ProvidedProperty(i, typeof<string>, getterCode = fun args -> <@@ i @@>)
+        // actually memeber of returned type
+            uniParc.AddMember prop
 
-        let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ "genType id":> obj @@>)
-        uniParc.AddMember(ctor)
-        // myType.AddMember(prop) for each property + nested, some of them can be types themselves(?)
         asm.AddTypes [ uniParc ]
         uniParc
 
-    let assemblyProvidedType = ProvidedTypeDefinition(asm, ns, "UniParcProvider", Some typeof<obj>, isErased=false)
+    let providedType = ProvidedTypeDefinition(asm, ns, "UniParcProvider", Some typeof<obj>, isErased=false)
     let assemblyParam = ProvidedStaticParameter("ID", typeof<string>, parameterDefaultValue = "")
-    
-    do assemblyProvidedType.DefineStaticParameters([assemblyParam], fun typeName args -> buildAssemblyType typeName (unbox<string> args.[0]))
+    do providedType.DefineStaticParameters([assemblyParam], fun typeName args -> buildType typeName )
 
-    do this.AddNamespace(ns, [assemblyProvidedType])
+    //let assemblyProvidedType = ProvidedTypeDefinition(asm, ns, "UniParcProvider", Some typeof<obj>, isErased=false)
+    //let assemblyParam = ProvidedStaticParameter("ID", typeof<string>, parameterDefaultValue = "")
+    do this.AddNamespace(ns, [providedType])
 
