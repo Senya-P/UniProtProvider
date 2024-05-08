@@ -15,25 +15,6 @@ type DataSource(filename:string) =
 
 
 
-type Fullname = 
-    {
-        value : string
-    }
-type Name = 
-    {
-        fullname: Fullname
-    }
-
-type Gen = 
-    {
-        geneName : Fullname
-        orfNames : array<Fullname>
-    }
-type Description = 
-    {
-        recommendedName : Name
-        alternativeNames: array<Name>
-    }
 type Organism = 
     {
         scientificName : string
@@ -67,6 +48,28 @@ type Evidence =
         evidenceCode : string
         source : string
         id : int
+    }
+    // may be split with and without evidences
+type Fullname = 
+    {
+        value : string
+        evidences : array<Evidence>
+    }
+type Name = 
+    {
+        fullname: Fullname
+        shortNames : array<Fullname>
+    }
+
+type Gen = 
+    {
+        geneName : Fullname
+        orfNames : array<Fullname>
+    }
+type Description = 
+    {
+        recommendedName : Name
+        alternativeNames: array<Name>
     }
 type Feature = 
     {
@@ -107,11 +110,17 @@ type Citation =
         lastPage : string
         volume : string
     }
+type ReferenceComment =
+    {
+        value : string
+        ``type`` : string
+    }
 type Reference = 
     {
         referenceNumber : int
         citation : Citation
         referencePositions : array<string>
+        referenceComments : array<ReferenceComment>
     }
 type Sequence = 
     {
@@ -121,25 +130,10 @@ type Sequence =
         crc64 : string
         md5 : string
     }
-type CountByCommentType =
-    {
-        FUNCTION : int
-        SUBUNIT : int
-        ``SUBCELLULAR LOCATION`` : int
-        PTM : int
-        SIMILARITY : int
-    }
-type CountByFeatureType =
-    {
-        Chain : int
-        ``Topological domain`` : int
-        Transmembrane : int
-        ``Disulfide bond`` : int
-    }
 type Attributes =
     { 
-        countByCommentType : CountByCommentType
-        countByFeatureType : CountByFeatureType
+        countByCommentType : array<(string * int)>
+        countByFeatureType : array<(string * int)>
         uniParcId : string
     }
 type Text = 
@@ -147,10 +141,19 @@ type Text =
         evidences : array<Evidence>
         value : string
     }
+type Isoform = 
+    {
+        name: Fullname
+        isoformIds : array<string>
+        isoformSequenceStatus : string
+
+    }
 type Comment =
     {
         texts : array<Text>
         commentType : string
+        events : array<string>
+        isoforms : array<Isoform>
     }
 type Prot = 
     {
@@ -177,20 +180,40 @@ type Result =
     {
         results : array<Prot>
     }
+type ProtIncomplete =
+    {
+        primaryAccession : string
+        uniProtkbId : string
+    }
+type IncompleteResult =
+    {
+        results : array<ProtIncomplete>
+    }
 
 module TypeGenerator = 
+    open ProviderImplementation.ProvidedTypes
     let request (query: string) =
         let client = new HttpClient()
         let response = client.GetStringAsync(query)
         response.Result
 
-    let genType (id: string) =
+    let genTypeById (id: string) =
         let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json" |]
         let query = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true)
         let json = request query
         let prot = Json.deserializeEx<Result> config json
         prot.results[0]
+
+    let genTypesByKeyWord (keyWord: string) = 
+        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size=10" |]
+        let query = System.String.Concat(parts)
+        let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
+        let json = request query
+        let prot = Json.deserializeEx<IncompleteResult> config json
+        prot.results
+
+
 
 // Put the TypeProviderAssemblyAttribute in the runtime DLL, pointing to the design-time DLL
 [<assembly:CompilerServices.TypeProviderAssembly("UniProtProvider.DesignTime.dll")>]

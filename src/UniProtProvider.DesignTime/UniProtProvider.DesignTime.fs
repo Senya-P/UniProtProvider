@@ -164,8 +164,30 @@ type UniProtKBProvider (config : TypeProviderConfig) as this =
             [ProvidedParameter("UniProtKBId", typeof<string>)], 
             typeof<Prot>, 
             isStatic=true,
-            invokeCode = (fun args -> <@@ TypeGenerator.genType (%%(args.[0]):string)  @@>))
+            invokeCode = (fun args -> <@@ TypeGenerator.genTypeById  (%%(args.[0]):string)  @@>))
         uniProtKB.AddMember(retrieveById)
+        // tying to make nested props...
+        (*
+        let genStaticProps (props : array<ProtIncomplete>) = 
+            let staticProps = [
+                for i in props do
+                    let valueOfTheProperty = string i.uniProtkbId
+                    let p =
+                        ProvidedProperty(propertyName = valueOfTheProperty,
+                        propertyType = typeof<string>,
+                        isStatic = true,
+                        getterCode= (fun args -> <@@ valueOfTheProperty @@>))
+                    p
+            ]
+            staticProps
+        *)
+        let retrieveByKeyWord = ProvidedMethod("ByKeyWord", 
+            [ProvidedParameter("KeyWord", typeof<string>)], 
+            typeof<array<ProtIncomplete>>, 
+            isStatic=true,
+            invokeCode = (fun args -> <@@ TypeGenerator.genTypesByKeyWord (%%(args.[0]):string) @@>))
+
+        uniProtKB.AddMember(retrieveByKeyWord)
         asm.AddTypes [ uniProtKB ]
         uniProtKB
     do

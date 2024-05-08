@@ -45,6 +45,7 @@ let ``Can access properties of generative provider 4`` () =
 
 type UniProtKB = UniProtKBProvider
 let obj = UniProtKB.ById("P68452")
+let obj2 = UniProtKB.ByKeyWord("human")[3]
 let md5 = obj.sequence.md5
 
 let w = obj.comments
