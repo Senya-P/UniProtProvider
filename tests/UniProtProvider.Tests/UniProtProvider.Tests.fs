@@ -1,5 +1,4 @@
 module UniProtProviderTests
-
 open MyNamespace
 open UniProtProvider
 open NUnit.Framework
@@ -21,15 +20,14 @@ let ``Method with ReflectedDefinition parameter should get its name`` () =
 
 type Generative2 = MyNamespace.GenerativeProvider<2>
 type Generative4 = MyNamespace.GenerativeProvider<4>
-type Type = MyNamespace.MyType
 
-//type UniParc = UniParcProvider<"">
+let ds = MyType.StaticMethod()
 
-let ds = Generative2.StaticMethod()
+let dsg = Generative2.StaticMethod()
 
 [<Test>]
 let ``Can access properties of generative provider 2`` () =
-    let obj = Generative2()
+    let obj = Generative2("Inner")
     Assert.AreEqual(obj.Property1, 1)
     Assert.AreEqual(obj.Property2, 2)
 
@@ -41,3 +39,16 @@ let ``Can access properties of generative provider 4`` () =
     Assert.AreEqual(obj.Property3, 3)
     Assert.AreEqual(obj.Property4, 4)
 
+
+// UNIPROT
+
+
+type UniProtKB = UniProtKBProvider
+let obj = UniProtKB.ById("P68452")
+let md5 = obj.sequence.md5
+
+let w = obj.comments
+
+for i in w do 
+    printf "%s" i.commentType 
+    printf "%A" i.texts

@@ -16,7 +16,6 @@
       <Link>paket-files/ProvidedTypes.fs</Link>
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="TypeGenerator.fs" />
     <Compile Include="..\UniProtProvider.Runtime\UniProtProvider.Runtime.fs" />
     <Compile Include="UniProtProvider.DesignTime.fs" />
     <None Include="paket.references" />

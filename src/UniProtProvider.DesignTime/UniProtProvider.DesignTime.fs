@@ -7,7 +7,6 @@ open System.Reflection
 open FSharp.Quotations
 open FSharp.Core.CompilerServices
 open UniProtProvider.RunTime
-open TypeGenerator
 open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
 open Microsoft.FSharp.Reflection
@@ -101,8 +100,7 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
     do
         this.AddNamespace(ns, [myParamType])
 
-// provider that accepts the whole UniProt id as a parameter -> exactly one entity
-// add generating by word (or part of it) -> list of entities
+(*
 [<TypeProvider>]
 type UniParcProvider (config : TypeProviderConfig) as this =
     inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("UniProtProvider.DesignTime", "UniProtProvider.Runtime")])
@@ -111,25 +109,26 @@ type UniParcProvider (config : TypeProviderConfig) as this =
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)  
 
-    let buildType  (typeName: string) =
+    let buildType  () =
         let asm = ProvidedAssembly()
-        let uniParc = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
-        let ctor = ProvidedConstructor([ProvidedParameter("uniParcId", typeof<string>)], invokeCode = fun args -> <@@ (%%(args[1]) : String) :> obj @@>)
-        uniParc.AddMember(ctor)
-
+        let uniParc = ProvidedTypeDefinition(asm, ns, "UniParcProvider", Some typeof<obj>, isErased=false)
         (*
-        let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ "" :> obj @@>)
+        let ctor = ProvidedConstructor([ProvidedParameter("uniParcId", typeof<string>)], invokeCode = fun args -> <@@ TypeGenerator.genType (%%(args.[0]):string) :> obj @@>)
         uniParc.AddMember(ctor)
-
+        *)
+        (*
+        let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ "" @@>)
+        uniParc.AddMember(ctor)
+        *)
         let retrieveById = ProvidedMethod("ById", 
             [ProvidedParameter("UniParcId", typeof<string>)], 
-            typeof<obj>, 
-            isStatic=true, 
-            invokeCode = (fun args -> <@@ (* genType (%%(args[0])) *)(%%(args[0]) : String) :> obj @@>))
+            typeof<ProtSeq>, 
+            isStatic=true,
+            invokeCode = (fun args -> <@@ TypeGenerator.genType (%%(args.[0]):string)  @@>))
         uniParc.AddMember(retrieveById)
-        *)
 
-        let getPropertyNames (s : System.Type)=
+        (*
+        let getPropertyNames (s : System.Type) =
             Seq.map (fun (t:System.Reflection.PropertyInfo) -> t.Name) (s.GetProperties())
 
         let names = getPropertyNames (typeof<ProtSeq>)
@@ -137,15 +136,38 @@ type UniParcProvider (config : TypeProviderConfig) as this =
             let prop = ProvidedProperty(i, typeof<string>, getterCode = fun args -> <@@ i @@>)
         // actually memeber of returned type
             uniParc.AddMember prop
-
+        *)
         asm.AddTypes [ uniParc ]
         uniParc
-
+    (*
     let providedType = ProvidedTypeDefinition(asm, ns, "UniParcProvider", Some typeof<obj>, isErased=false)
     let assemblyParam = ProvidedStaticParameter("ID", typeof<string>, parameterDefaultValue = "")
     do providedType.DefineStaticParameters([assemblyParam], fun typeName args -> buildType typeName )
-
+    *)
     //let assemblyProvidedType = ProvidedTypeDefinition(asm, ns, "UniParcProvider", Some typeof<obj>, isErased=false)
     //let assemblyParam = ProvidedStaticParameter("ID", typeof<string>, parameterDefaultValue = "")
-    do this.AddNamespace(ns, [providedType])
+    do
+        this.AddNamespace(ns, [buildType()])
+*)
+[<TypeProvider>]
+type UniProtKBProvider (config : TypeProviderConfig) as this =
+    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("UniProtProvider.DesignTime", "UniProtProvider.Runtime")])
+    let ns = "UniProtProvider"
+    let asm = Assembly.GetExecutingAssembly()
+    // check we contain a copy of runtime files, and are not referencing the runtime DLL
+    do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)  
+
+    let buildType  () =
+        let asm = ProvidedAssembly()
+        let uniProtKB = ProvidedTypeDefinition(asm, ns, "UniProtKBProvider", Some typeof<obj>, isErased=false)
+        let retrieveById = ProvidedMethod("ById", 
+            [ProvidedParameter("UniProtKBId", typeof<string>)], 
+            typeof<Prot>, 
+            isStatic=true,
+            invokeCode = (fun args -> <@@ TypeGenerator.genType (%%(args.[0]):string)  @@>))
+        uniProtKB.AddMember(retrieveById)
+        asm.AddTypes [ uniProtKB ]
+        uniProtKB
+    do
+        this.AddNamespace(ns, [buildType()])
 
