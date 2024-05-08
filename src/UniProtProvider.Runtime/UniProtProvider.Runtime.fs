@@ -206,7 +206,7 @@ module TypeGenerator =
         prot.results[0]
 
     let genTypesByKeyWord (keyWord: string) = 
-        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size=10" |]
+        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size=5" |]
         let query = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let json = request query

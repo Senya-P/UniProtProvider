@@ -181,12 +181,25 @@ type UniProtKBProvider (config : TypeProviderConfig) as this =
             ]
             staticProps
         *)
+        let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
+            for i in props do
+                let valueOfTheProperty = i.uniProtkbId
+                let p =
+                    ProvidedProperty(propertyName = valueOfTheProperty,
+                    propertyType = typeof<Prot>,
+                    isStatic = true,
+                    getterCode= (fun args -> <@@ TypeGenerator.genTypeById valueOfTheProperty @@>))
+                nestedType.AddMember p
+
+        let prot = ProvidedTypeDefinition("Prot", Some typeof<obj>, isErased=false)
+        addProps (TypeGenerator.genTypesByKeyWord "human") prot
+        uniProtKB.AddMember prot
+
         let retrieveByKeyWord = ProvidedMethod("ByKeyWord", 
             [ProvidedParameter("KeyWord", typeof<string>)], 
-            typeof<array<ProtIncomplete>>, 
+            typeof<array<ProtIncomplete>>,
             isStatic=true,
-            invokeCode = (fun args -> <@@ TypeGenerator.genTypesByKeyWord (%%(args.[0]):string) @@>))
-
+            invokeCode = (fun args -> <@@ TypeGenerator.genTypesByKeyWord  (%%(args.[0]):string) @@>))
         uniProtKB.AddMember(retrieveByKeyWord)
         asm.AddTypes [ uniProtKB ]
         uniProtKB
