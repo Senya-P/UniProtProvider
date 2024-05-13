@@ -28,7 +28,7 @@ The package provides `UniProtKBProvider` for proteins.
 2. Motivational example of use
 
 Retrieving by UniProt id:
-   ```
+    ```
     type UniProtKB = UniProtKBProvider
     let obj = UniProtKB.ById("P68452")
     let md5 = obj.sequence.md5 // "8869480F6C4AB10C36AB8943E6D9FE98"
@@ -38,16 +38,16 @@ Retrieving by UniProt id:
     for i in comments do 
         printf "%s" i.commentType 
         printf "%A" i.texts
-   ```
+    ```
 Retrieving by keyword:
-```
-type UniProtKB = UniProtKBProvider
-let obj = UniProtKB.ByKeyWord<"Insuli">.``insulin``
-                                       .``insult``
-                                       .``insulz``
-                                       .``insulae``
-                                       .``inouei``
-```
+    ```
+    type UniProtKB = UniProtKBProvider
+    let obj = UniProtKB.ByKeyWord("human").ECD_HUMAN.genes
+                                        .HLAA_HUMAN
+                                        .ELNE_HUMAN
+                                        .HELZ_HUMAN
+                                        ...
+    ```
 
 
 4. Environment 
