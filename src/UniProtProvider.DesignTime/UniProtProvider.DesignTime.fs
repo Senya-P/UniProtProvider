@@ -181,6 +181,7 @@ type UniProtKBProvider (config : TypeProviderConfig) as this =
             ]
             staticProps
         *)
+        (*
         let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
             for i in props do
                 let valueOfTheProperty = i.uniProtkbId
@@ -194,12 +195,55 @@ type UniProtKBProvider (config : TypeProviderConfig) as this =
         let prot = ProvidedTypeDefinition("Prot", Some typeof<obj>, isErased=false)
         addProps (TypeGenerator.genTypesByKeyWord "human") prot
         uniProtKB.AddMember prot
+        *)
 
+        (* 
         let retrieveByKeyWord = ProvidedMethod("ByKeyWord", 
             [ProvidedParameter("KeyWord", typeof<string>)], 
             typeof<array<ProtIncomplete>>,
             isStatic=true,
             invokeCode = (fun args -> <@@ TypeGenerator.genTypesByKeyWord  (%%(args.[0]):string) @@>))
+           
+        retrieveByKeyWord.DefineStaticParameters( [ProvidedStaticParameter("Count", typeof<string>)], fun methodName args -> 
+            if unbox<string> args.[0] = "test" then
+                let m = ProvidedMethod(methodName, [], typeof<int>, (fun _ -> <@@ 1 @@>), isStatic=true)
+                uniProtKB.AddMember m
+                m
+            else
+                let m = ProvidedMethod(methodName, [], typeof<string>, (fun _ -> <@@ "result" @@>), isStatic=true)
+                uniProtKB.AddMember m
+                m 
+            
+            )
+        *)
+        
+        let retrieveByKeyWord = ProvidedMethod("ByKeyWord", 
+            [], 
+            typeof<obj>,
+            isStatic=true)
+        retrieveByKeyWord.DefineStaticParameters( [ProvidedStaticParameter("KeyWord", typeof<string>)], fun methodName args -> 
+            let result = TypeGenerator.genTypesByKeyWord (unbox<string> args.[0])
+            let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
+                for i in props do
+                    let name = i.primaryAccession
+                    let value = i.uniProtkbId
+                    let p =
+                        ProvidedProperty(propertyName = name,
+                        propertyType = typeof<Prot>,
+                        isStatic = true,
+                        getterCode= (fun args -> <@@ TypeGenerator.genTypeById value @@>))
+                    nestedType.AddMember p
+
+            let prot = ProvidedTypeDefinition("prot", Some typeof<obj>, hideObjectMethods=true, isErased=true)
+            //let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ obj() @@>)
+
+            //prot.AddMember(ctor)
+            addProps result prot
+            uniProtKB.AddMember prot
+            let m = ProvidedMethod(methodName, [], prot, (fun _ -> <@@ obj() @@>), isStatic=true)
+            uniProtKB.AddMember m
+            m
+            )
         uniProtKB.AddMember(retrieveByKeyWord)
         asm.AddTypes [ uniProtKB ]
         uniProtKB

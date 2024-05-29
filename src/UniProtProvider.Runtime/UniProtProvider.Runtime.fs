@@ -13,8 +13,6 @@ module internal Utilities =
 type DataSource(filename:string) = 
     member this.FileName = filename
 
-
-
 type Organism = 
     {
         scientificName : string
