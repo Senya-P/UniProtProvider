@@ -13,166 +13,177 @@ module internal Utilities =
 type DataSource(filename:string) = 
     member this.FileName = filename
 
+
+type SomeRuntimeHelper() = 
+    static member Help() = "help"
+
+[<AllowNullLiteral>]
+type SomeRuntimeHelper2() = 
+    static member Help() = "help"
+
+type Server (name : string) =
+    member x.Name with get() : string = name
+
 type Organism = 
     {
-        scientificName : string
-        commonName : string
-        taxonId : int
-        lineage : array<string>
+        scientificName : string option
+        commonName : string option
+        taxonId : int option
+        lineage : array<string> option
     }
 type Audit = 
     {
-        firstPublicDate : string
-        lastAnnotationUpdateDate : string
-        lastSequenceUpdateDate : string
-        entryVersion : int
-        sequenceVersion : int
+        firstPublicDate : string option
+        lastAnnotationUpdateDate : string option
+        lastSequenceUpdateDate : string option
+        entryVersion : int option
+        sequenceVersion : int option
     }
 
 
 type Point = 
     {
-        value : int
-        modifier : string
+        value : int option
+        modifier : string option
     }
 type Location = 
     {
-        start : Point
-        ``end`` : Point
+        start : Point option
+        ``end`` : Point option
     }
 
 type Evidence = 
     {
-        evidenceCode : string
-        source : string
-        id : int
+        evidenceCode : string option
+        source : string option
+        id : string option
     }
     // may be split with and without evidences
 type Fullname = 
     {
-        value : string
-        evidences : array<Evidence>
+        value : string option
+        evidences : array<Evidence> option
     }
 type Name = 
     {
-        fullname: Fullname
-        shortNames : array<Fullname>
+        fullname: Fullname option
+        shortNames : array<Fullname> option
     }
 
 type Gen = 
     {
-        geneName : Fullname
-        orfNames : array<Fullname>
+        geneName : Fullname option
+        orfNames : array<Fullname> option
     }
 type Description = 
     {
-        recommendedName : Name
-        alternativeNames: array<Name>
+        recommendedName : Name option
+        alternativeNames: array<Name> option
     }
 type Feature = 
     {
-        ``type`` : string
-        location : Location
-        description : string
-        featureId : string
-        evidences : array<Evidence>
+        ``type`` : string option
+        location : Location option
+        description : string option
+        featureId : string option
+        evidences : array<Evidence> option
     }
 type Keyword = 
     {
-        id : string
-        category : string
-        name : string
+        id : string option
+        category : string option
+        name : string option
     }
 
 type Property = 
     {
-        key : string
-        value : string
+        key : string option
+        value : string option
     }
 type CrossReference =
     {
-        database : string
-        id : string
-        properties : array<Property>
+        database : string option
+        id : string option
+        properties : array<Property> option
     }
 type Citation = 
     {
-        id : string
-        citationType : string
-        authors : array<string>
-        citationCrossReferences : array<CrossReference>
-        title : string
-        publicationDate : string
-        journal : string
-        firstPage : string
-        lastPage : string
-        volume : string
+        id : string option
+        citationType : string option
+        authors : array<string> option
+        citationCrossReferences : array<CrossReference> option
+        title : string option
+        publicationDate : string option
+        journal : string option
+        firstPage : string option
+        lastPage : string option
+        volume : string option
     }
 type ReferenceComment =
     {
-        value : string
-        ``type`` : string
+        value : string option
+        ``type`` : string option
     }
 type Reference = 
     {
-        referenceNumber : int
-        citation : Citation
-        referencePositions : array<string>
-        referenceComments : array<ReferenceComment>
+        referenceNumber : int option
+        citation : Citation option
+        referencePositions : array<string> option
+        referenceComments : array<ReferenceComment> option
     }
 type Sequence = 
     {
-        value : string
-        length : int
-        molWeight : int
-        crc64 : string
-        md5 : string
+        value : string option
+        length : int option
+        molWeight : int option
+        crc64 : string option
+        md5 : string option
     }
 type Attributes =
     { 
-        countByCommentType : array<(string * int)>
-        countByFeatureType : array<(string * int)>
-        uniParcId : string
+        //countByCommentType : array<(string * int)> option
+        //countByFeatureType : array<(string * int)> option
+        uniParcId : string option
     }
 type Text = 
     {
-        evidences : array<Evidence>
-        value : string
+        evidences : array<Evidence> option
+        value : string option
     }
 type Isoform = 
     {
-        name: Fullname
-        isoformIds : array<string>
-        isoformSequenceStatus : string
+        name: Fullname option
+        isoformIds : array<string> option
+        isoformSequenceStatus : string option
 
     }
 type Comment =
     {
-        texts : array<Text>
-        commentType : string
-        events : array<string>
-        isoforms : array<Isoform>
+        texts : array<Text> option
+        commentType : string option
+        events : array<string> option
+        isoforms : array<Isoform> option
     }
 type Prot = 
     {
-        entryType : string
+        entryType : string option
         primaryAccession : string
-        secondaryAccessions : array<string>
+        secondaryAccessions : array<string> option
         uniProtkbId : string
-        entryAudit : Audit
-        annotationScore : double
-        organism : Organism
-        organismHosts : array<Organism> //
-        proteinExistence : string
-        proteinDescription : Description
-        genes : array<Gen>
-        comments : array<Comment> //
-        features : array<Feature>
-        keywords : array<Keyword>
-        references : array<Reference>
-        uniProtKBCrossReferences : array<CrossReference>
-        sequence : Sequence
-        extraAttributes : Attributes
+        entryAudit : Audit option
+        annotationScore : double option
+        organism : Organism option
+        organismHosts : array<Organism> option
+        proteinExistence : string option
+        proteinDescription : Description option
+        genes : array<Gen> option
+        comments : array<Comment> option
+        features : array<Feature> option
+        keywords : array<Keyword> option
+        references : array<Reference> option
+        uniProtKBCrossReferences : array<CrossReference> option
+        sequence : Sequence option
+        extraAttributes : Attributes option
     }
 type Result = 
     {
@@ -198,7 +209,7 @@ module TypeGenerator =
     let genTypeById (id: string) =
         let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json" |]
         let query = System.String.Concat(parts)
-        let config = JsonConfig.create(allowUntyped = true)
+        let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let json = request query
         let prot = Json.deserializeEx<Result> config json
         prot.results[0]

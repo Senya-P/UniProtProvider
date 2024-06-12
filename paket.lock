@@ -8,26 +8,26 @@ GITHUB
 GROUP Test
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    Microsoft.CodeCoverage (17.9) - restriction: || (>= net462) (>= netcoreapp3.1)
-    Microsoft.NET.Test.Sdk (17.9)
-      Microsoft.CodeCoverage (>= 17.9) - restriction: || (>= net462) (>= netcoreapp3.1)
-      Microsoft.TestPlatform.TestHost (>= 17.9) - restriction: >= netcoreapp3.1
+    Microsoft.CodeCoverage (17.10) - restriction: || (>= net462) (>= netcoreapp3.1)
+    Microsoft.NET.Test.Sdk (17.10)
+      Microsoft.CodeCoverage (>= 17.10) - restriction: || (>= net462) (>= netcoreapp3.1)
+      Microsoft.TestPlatform.TestHost (>= 17.10) - restriction: >= netcoreapp3.1
     Microsoft.NETCore.App (2.2.8)
       Microsoft.NETCore.DotNetHostPolicy (>= 2.2.8) - restriction: >= netcoreapp2.2
       Microsoft.NETCore.Platforms (>= 2.2.4) - restriction: >= netcoreapp2.2
       Microsoft.NETCore.Targets (>= 2.0) - restriction: >= netcoreapp2.2
       NETStandard.Library (>= 2.0.3) - restriction: >= netcoreapp2.2
-    Microsoft.NETCore.DotNetAppHost (8.0.4) - restriction: >= netcoreapp2.2
-    Microsoft.NETCore.DotNetHostPolicy (8.0.4) - restriction: >= netcoreapp2.2
-      Microsoft.NETCore.DotNetHostResolver (>= 8.0.4)
-    Microsoft.NETCore.DotNetHostResolver (8.0.4) - restriction: >= netcoreapp2.2
-      Microsoft.NETCore.DotNetAppHost (>= 8.0.4)
+    Microsoft.NETCore.DotNetAppHost (8.0.6) - restriction: >= netcoreapp2.2
+    Microsoft.NETCore.DotNetHostPolicy (8.0.6) - restriction: >= netcoreapp2.2
+      Microsoft.NETCore.DotNetHostResolver (>= 8.0.6)
+    Microsoft.NETCore.DotNetHostResolver (8.0.6) - restriction: >= netcoreapp2.2
+      Microsoft.NETCore.DotNetAppHost (>= 8.0.6)
     Microsoft.NETCore.Platforms (7.0.4) - restriction: >= netcoreapp2.2
     Microsoft.NETCore.Targets (5.0) - restriction: >= netcoreapp2.2
-    Microsoft.TestPlatform.ObjectModel (17.9) - restriction: >= netcoreapp3.1
+    Microsoft.TestPlatform.ObjectModel (17.10) - restriction: >= netcoreapp3.1
       System.Reflection.Metadata (>= 1.6) - restriction: || (>= net462) (>= netstandard2.0)
-    Microsoft.TestPlatform.TestHost (17.9) - restriction: >= netcoreapp3.1
-      Microsoft.TestPlatform.ObjectModel (>= 17.9) - restriction: >= netcoreapp3.1
+    Microsoft.TestPlatform.TestHost (17.10) - restriction: >= netcoreapp3.1
+      Microsoft.TestPlatform.ObjectModel (>= 17.10) - restriction: >= netcoreapp3.1
       Newtonsoft.Json (>= 13.0.1) - restriction: >= netcoreapp3.1
     NETStandard.Library (2.0.3) - restriction: >= netcoreapp2.2
       Microsoft.NETCore.Platforms (>= 1.1) - restriction: || (&& (>= net45) (< netstandard1.3)) (&& (< net45) (>= netstandard1.1) (< netstandard1.2) (< win8)) (&& (< net45) (>= netstandard1.2) (< netstandard1.3) (< win8) (< wpa81)) (&& (< net45) (>= netstandard1.3) (< netstandard1.4) (< win8) (< wpa81)) (&& (< net45) (>= netstandard1.4) (< netstandard1.5) (< win8) (< wpa81)) (&& (< net45) (>= netstandard1.5) (< netstandard1.6) (< win8) (< wpa81)) (&& (< net45) (>= netstandard1.6) (< netstandard2.0) (< win8) (< wpa81)) (&& (< net45) (>= netstandard2.0)) (&& (>= net46) (< netstandard1.4)) (>= net461) (>= netcoreapp2.0) (&& (>= netstandard1.0) (< portable-net45+win8+wpa81)) (&& (< netstandard1.0) (>= portable-net45+win8) (< win8)) (&& (< netstandard1.0) (< portable-net45+win8) (>= portable-net45+win8+wpa81)) (&& (< netstandard1.0) (>= portable-net45+win8+wp8+wpa81) (< portable-net45+win8+wpa81)) (&& (< netstandard1.0) (>= win8)) (&& (< netstandard1.3) (< win8) (>= wpa81)) (&& (< netstandard1.5) (>= uap10.0)) (>= uap10.1) (>= wp8)

@@ -1,6 +1,7 @@
-namespace UniProtProvider.DesignTime
 open FSharp.Json
 open System.Net.Http
+
+// UniParc for protein sequence
 module TypeGenerator =
 
     type Result = 

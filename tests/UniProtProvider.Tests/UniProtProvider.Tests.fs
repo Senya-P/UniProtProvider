@@ -39,10 +39,20 @@ let ``Can access properties of generative provider 4`` () =
     Assert.AreEqual(obj.Property3, 3)
     Assert.AreEqual(obj.Property4, 4)
 
-
 // UNIPROT
 
-
 type UniProtKB = UniProtKBProvider
-let obj = UniProtKB.ById("P68452")
-let obj3 = UniProtKB.ByKeyWord<"Human">()
+//type Human = UniProtKB.ByKeyWord<"Human">
+
+type Human1 = UniProtProvider.ById<"P42694">
+
+type Human2 = UniProtProvider.ByKeyWord<"Human">
+
+[<Test>]
+let ``ById and ByKeyWord return the same`` () =
+    let genes1 = Human1.P42694.genes
+    let genes2 = Human2.P42694.genes
+    let seq1 = Human1.P42694.sequence
+    let seq2 = Human2.P42694.sequence
+    Assert.AreEqual(genes1, genes2)
+    Assert.AreEqual(seq1, seq2)
