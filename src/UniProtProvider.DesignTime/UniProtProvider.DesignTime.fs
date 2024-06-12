@@ -334,7 +334,7 @@ type UniProtKBProvider (config : TypeProviderConfig) as this =
             ns, 
             "UniProtKBProvider", 
             Some typeof<obj>, 
-            isErased=true)
+            isErased=false)
         
         let retrieveById = ProvidedMethod("ById", 
             [ProvidedParameter("UniProtKBId", typeof<string>)], 
@@ -346,14 +346,14 @@ type UniProtKBProvider (config : TypeProviderConfig) as this =
         let retrieveByKeyWord = 
             ProvidedTypeDefinition("ByKeyWord", 
             Some typeof<obj>, 
-            isErased=true, 
+            isErased=false, 
             hideObjectMethods=true)
         let parameter = ProvidedStaticParameter("KeyWord", typeof<string>)
         retrieveByKeyWord.DefineStaticParameters( [parameter], fun typeName args ->
             let prot = 
                 ProvidedTypeDefinition(typeName, 
                 Some typeof<obj>, 
-                isErased=true, 
+                isErased=false, 
                 hideObjectMethods=true)
             let result = TypeGenerator.genTypesByKeyWord (unbox<string> args.[0])
             let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
@@ -390,21 +390,25 @@ type ById (config : TypeProviderConfig) as this =
         ns, 
         "ById", 
         Some typeof<obj>, 
-        isErased=false, 
+        //isErased=false, 
         hideObjectMethods=true)
+    do retrieveById.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
     let parameter = ProvidedStaticParameter("UniProtKBId", typeof<string>)
     do retrieveById.DefineStaticParameters( [parameter], fun typeName args -> 
-        let result = TypeGenerator.genTypeById (unbox<string> args.[0])
+        let id = (unbox<string> args.[0])
+        let result = TypeGenerator.genTypeById id
+        let value = result.uniProtkbId
         let prot = 
             ProvidedTypeDefinition(typeName, 
             Some typeof<obj>,
-            isErased=false, 
+            //isErased=false, 
             hideObjectMethods=true)
+        prot.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         let p =
             ProvidedProperty(propertyName = result.primaryAccession,
             propertyType = typeof<Prot>,
-            isStatic = true,
-            getterCode = (fun args -> <@@ result @@>))
+            //isStatic = true,
+            getterCode = (fun _ -> <@@ TypeGenerator.genTypeById value @@>))
         prot.AddMember p
         retrieveById.AddMember prot
         prot
@@ -419,21 +423,27 @@ type ByKeyWord (config : TypeProviderConfig) as this =
     let asm = Assembly.GetExecutingAssembly()
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)
+
+    let mutable count = 0
+    let nextNumber() = count <- count + 1; count
+
     let retrieveByKeyWord = 
         ProvidedTypeDefinition(
         asm,
         ns,
         "ByKeyWord", 
         Some typeof<obj>, 
-        isErased=false, 
+        //isErased=false, 
         hideObjectMethods=true)
+    do retrieveByKeyWord.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
     let parameter = ProvidedStaticParameter("KeyWord", typeof<string>)
     do retrieveByKeyWord.DefineStaticParameters( [parameter], fun typeName args ->
         let prot = 
             ProvidedTypeDefinition(typeName, 
             Some typeof<obj>, 
-            isErased=false, 
+            //isErased=false, 
             hideObjectMethods=true)
+        prot.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         let result = TypeGenerator.genTypesByKeyWord (unbox<string> args.[0])
         let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
             for i in props do
@@ -442,11 +452,29 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 let p =
                     ProvidedProperty(propertyName = name,
                     propertyType = typeof<Prot>,
-                    isStatic = true,
+                    //isStatic = true,
                     getterCode = (fun args -> <@@ TypeGenerator.genTypeById value @@>))
                 nestedType.AddMember p
 
         addProps result prot
+
+
+        let staticMeth = ProvidedMethod("ByOrganism", [], typeof<obj>)
+        staticMeth.DefineStaticParameters([ProvidedStaticParameter("name", typeof<string>)], fun methName args ->
+          let s = args.[0] :?> string
+
+          let t = ProvidedTypeDefinition("Hidden" + string (nextNumber()), Some typeof<obj>)
+          t.AddMember(ProvidedProperty(s, typeof<string>, getterCode=fun _ -> <@@ s @@>))
+          prot.AddMember(t)
+
+          let m = ProvidedMethod(methName, [], t, invokeCode = fun _ -> <@@ obj() @@>)
+          prot.AddMember(m)
+          m
+        )
+        prot.AddMember(staticMeth)
+
+
+
         retrieveByKeyWord.AddMember prot
         prot
     )
