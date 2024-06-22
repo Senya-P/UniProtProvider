@@ -61,12 +61,12 @@ type Evidence =
     // may be split with and without evidences
 type Fullname = 
     {
-        value : string option
+        value : string
         evidences : array<Evidence> option
     }
 type Name = 
     {
-        fullname: Fullname option
+        fullName: Fullname
         shortNames : array<Fullname> option
     }
 
@@ -175,7 +175,7 @@ type Prot =
         organism : Organism option
         organismHosts : array<Organism> option
         proteinExistence : string option
-        proteinDescription : Description option
+        proteinDescription : Description
         genes : array<Gen> option
         comments : array<Comment> option
         features : array<Feature> option
@@ -193,6 +193,7 @@ type ProtIncomplete =
     {
         primaryAccession : string
         uniProtkbId : string
+        proteinDescription : Description
     }
 type IncompleteResult =
     {
@@ -207,7 +208,7 @@ module TypeGenerator =
         response.Result
 
     let genTypeById (id: string) =
-        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json" |]
+        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json&size=1" |]
         let query = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let json = request query
@@ -215,7 +216,7 @@ module TypeGenerator =
         prot.results[0]
 
     let genTypesByKeyWord (keyWord: string) = 
-        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size=5" |]
+        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size=10" |]
         let query = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let json = request query

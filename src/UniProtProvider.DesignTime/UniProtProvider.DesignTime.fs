@@ -102,169 +102,6 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
         this.AddNamespace(ns, [myParamType])
 
 [<TypeProvider>]
-type StressErasingProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces (config, addDefaultProbingLocation=true)
-
-    let ns = "StressProvider"
-    let asm = Assembly.GetExecutingAssembly()
-
-    let newProperty t name getter isStatic = ProvidedProperty(name, t, getter, isStatic = isStatic)
-    let newStaticProperty t name getter = newProperty t name (fun _ -> getter) true
-    let newInstanceProperty t name getter = newProperty t name (fun _ -> getter) false
-    let addStaticProperty t name getter (typ:ProvidedTypeDefinition) = typ.AddMember (newStaticProperty t name getter); typ
-    let addInstanceProperty t name getter (typ:ProvidedTypeDefinition) = typ.AddMember (newInstanceProperty t name getter); typ
-
-    let provider = ProvidedTypeDefinition(asm, ns, "Provider", Some typeof<obj>, hideObjectMethods = true)
-    let tags = ProvidedTypeDefinition(asm, ns, "Tags", Some typeof<obj>, hideObjectMethods = true)           
-    do [1..2000] |> Seq.iter (fun i -> addInstanceProperty typeof<int> (sprintf "Tag%d" i) <@@ i @@> tags |> ignore)
-
-    do provider.DefineStaticParameters([ProvidedStaticParameter("Host", typeof<string>)], fun name args ->
-        let provided = ProvidedTypeDefinition(asm, ns, name, Some typeof<obj>, hideObjectMethods = true)
-        addStaticProperty tags "Tags" <@@ obj() @@> provided |> ignore
-        provided
-    )
-
-    // An example provider with one _optional_ static parameter
-    let provider2 = ProvidedTypeDefinition(asm, ns, "Provider2", Some typeof<obj>, hideObjectMethods = true)
-    do provider2.DefineStaticParameters([ProvidedStaticParameter("Host", typeof<string>, "default")], fun name args ->
-        let provided = 
-            let srv = args.[0] :?> string
-            let prop = ProvidedProperty("Server", typeof<Server>, (fun _ -> <@@ Server(srv) @@>), isStatic = true)
-            let provided = ProvidedTypeDefinition(asm, ns, name, Some typeof<obj>, hideObjectMethods = true)
-            provided.AddMember prop
-            addStaticProperty tags "Tags" <@@ obj() @@> provided |> ignore
-            provided
-
-        provided
-    )
-
-    let provider3 = ProvidedTypeDefinition(asm, ns, "Provider3", Some typeof<obj>, hideObjectMethods = true)
-
-    do provider3.DefineStaticParameters([ProvidedStaticParameter("Host", typeof<string>)], fun name _ ->
-        let provided = ProvidedTypeDefinition(asm, ns, name, Some typeof<obj>, hideObjectMethods = true)
-
-        let fn = ProvidedMethod("Test", [ ProvidedParameter("disp", typeof<IDisposable>) ], typeof<string>, fun [ arg ] ->
-            <@@
-                use __ = (%%arg : IDisposable)
-                let mutable res = ""
-
-                try 
-                    try
-                        System.Console.WriteLine() // test calling a method with void return type
-                        failwith "This will throw anyway, don't mind it."
-
-                        res <- "[-] Should not get here."
-                    finally
-                        res <- "[+] Caught try-finally, nice."
-
-                        try
-                            failwith "It failed again."
-
-                            res <- "[-] Should not get here."
-                        with
-                        | _ ->
-                            res <- "[+] Caught try-with, nice."
-
-                        try
-                            res <- "[?] Gonna go to finally without throwing..."
-                        finally
-                            res <- "[+] Yup, it worked totally."
-                    res
-                with _ -> 
-                    res
-            @@>
-        , isStatic = true)
-
-        provided.AddMember fn
-        provided
-    )
-
-    do this.AddNamespace(ns, [provider; provider2; provider3; tags])
-
-[<TypeProvider>]
-type StressGenerativeProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces (config)
-
-    let ns = "StressProvider"
-    let asm = Assembly.GetExecutingAssembly()
-
-    // check we contain a copy of runtime files, and are not referencing the runtime DLL
-    do assert (typeof<SomeRuntimeHelper>.Assembly.GetName().Name = asm.GetName().Name)  
-
-    let createType typeName (count:int) =
-        let asm = ProvidedAssembly()
-        let myType = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
-
-        let ctor = ProvidedConstructor([], invokeCode = fun args -> <@@ "My internal state" :> obj @@>)
-        myType.AddMember(ctor)
-
-        let ctor2 = ProvidedConstructor([ProvidedParameter("InnerState", typeof<string>)], invokeCode = fun args -> <@@ (%%(args.[1]):string) :> obj @@>)
-        myType.AddMember(ctor2)
-
-        for i in 1 .. count do 
-            let prop = ProvidedProperty("PropertyWithTryCatch" + string i, typeof<int>, getterCode = fun args -> <@@ try i with _ -> i+1 @@>)
-            myType.AddMember(prop)
-
-        for i in 1 .. count do 
-            let prop = ProvidedProperty("PropertyWithTryFinally" + string i, typeof<int>, getterCode = fun args -> <@@ try i finally ignore i @@>)
-            myType.AddMember(prop)
-
-        let meth = ProvidedMethod("StaticMethod", [], typeof<SomeRuntimeHelper>, isStatic=true, invokeCode = (fun args -> Expr.Value(null, typeof<SomeRuntimeHelper>)))
-        myType.AddMember(meth)
-        asm.AddTypes [ myType ]
-
-        myType
-
-    let provider = 
-        let t = ProvidedTypeDefinition(asm, ns, "GenerativeProvider", Some typeof<obj>, isErased=false)
-        t.DefineStaticParameters( [ProvidedStaticParameter("Count", typeof<int>)], fun typeName args -> createType typeName (unbox<int> args.[0]))
-        t
-
-    let provider3 = ProvidedTypeDefinition(asm, ns, "GenerativeProvider3", Some typeof<obj>, hideObjectMethods = true)
-
-    do provider3.DefineStaticParameters([ProvidedStaticParameter("Host", typeof<string>)], fun name _ ->
-        let provided = ProvidedTypeDefinition(asm, ns, name, Some typeof<obj>, hideObjectMethods = true)
-
-        let fn = ProvidedMethod("Test", [ ProvidedParameter("disp", typeof<IDisposable>) ], typeof<string>, fun [ arg ] ->
-            <@@
-                use __ = (%%arg : IDisposable)
-                let mutable res = ""
-
-                try 
-                    try
-                        System.Console.WriteLine() // test calling a method with void return type
-                        failwith "This will throw anyway, don't mind it."
-
-                        res <- "[-] Should not get here."
-                    finally
-                        res <- "[+] Caught try-finally, nice."
-
-                        try
-                            failwith "It failed again."
-
-                            res <- "[-] Should not get here."
-                        with
-                        | _ ->
-                            res <- "[+] Caught try-with, nice."
-
-                        try
-                            res <- "[?] Gonna go to finally without throwing..."
-                        finally
-                            res <- "[+] Yup, it worked totally."
-                    res
-                with _ -> 
-                    res
-            @@>
-        , isStatic = true)
-
-        provided.AddMember fn
-        provided
-    )
-
-    do
-        this.AddNamespace(ns, [provider; provider3])
-
-[<TypeProvider>]
 type UniProtKBProvider (config : TypeProviderConfig) as this =
     inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("UniProtProvider.DesignTime", "UniProtProvider.Runtime")])
     let ns = "UniProtProvider"
@@ -398,6 +235,7 @@ type ById (config : TypeProviderConfig) as this =
         let id = (unbox<string> args.[0])
         let result = TypeGenerator.genTypeById id
         let value = result.uniProtkbId
+        let name = result.proteinDescription.recommendedName.Value.fullName.value
         let prot = 
             ProvidedTypeDefinition(typeName, 
             Some typeof<obj>,
@@ -405,7 +243,7 @@ type ById (config : TypeProviderConfig) as this =
             hideObjectMethods=true)
         prot.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         let p =
-            ProvidedProperty(propertyName = result.primaryAccession,
+            ProvidedProperty(propertyName = name,
             propertyType = typeof<Prot>,
             //isStatic = true,
             getterCode = (fun _ -> <@@ TypeGenerator.genTypeById value @@>))
@@ -425,7 +263,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
     do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)
 
     let mutable count = 0
-    let nextNumber() = count <- count + 1; count
+    let nextNumber() = count <- count + 1; count // serves to generate unique type names
 
     let retrieveByKeyWord = 
         ProvidedTypeDefinition(
@@ -447,7 +285,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         let result = TypeGenerator.genTypesByKeyWord (unbox<string> args.[0])
         let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
             for i in props do
-                let name = i.primaryAccession
+                let name = i.proteinDescription.recommendedName.Value.fullName.value
                 let value = i.uniProtkbId
                 let p =
                     ProvidedProperty(propertyName = name,
@@ -459,19 +297,19 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         addProps result prot
 
 
-        let staticMeth = ProvidedMethod("ByOrganism", [], typeof<obj>)
-        staticMeth.DefineStaticParameters([ProvidedStaticParameter("name", typeof<string>)], fun methName args ->
-          let s = args.[0] :?> string
+        let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
+        byOrganism.DefineStaticParameters([ProvidedStaticParameter("Name", typeof<string>)], fun methName args ->
+            let s = args.[0] :?> string
 
-          let t = ProvidedTypeDefinition("Hidden" + string (nextNumber()), Some typeof<obj>)
-          t.AddMember(ProvidedProperty(s, typeof<string>, getterCode=fun _ -> <@@ s @@>))
-          prot.AddMember(t)
+            let t = ProvidedTypeDefinition("Hidden" + string (nextNumber()), Some typeof<obj>)
+            t.AddMember(ProvidedProperty(s, typeof<string>, getterCode=fun _ -> <@@ s @@>))
+            prot.AddMember(t)
 
-          let m = ProvidedMethod(methName, [], t, invokeCode = fun _ -> <@@ obj() @@>)
-          prot.AddMember(m)
-          m
+            let m = ProvidedMethod(methName, [], t, invokeCode = fun _ -> <@@ obj() @@>)
+            prot.AddMember(m)
+            m
         )
-        prot.AddMember(staticMeth)
+        prot.AddMember(byOrganism)
 
 
 

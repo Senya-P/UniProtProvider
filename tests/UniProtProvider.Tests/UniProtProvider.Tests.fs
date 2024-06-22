@@ -48,17 +48,17 @@ let human1 = UniProtProvider.ById<"P42694">()
 
 let human2 = UniProtProvider.ByKeyWord<"Human">()
 
-let test = UniProtProvider.ByKeyWord<"H">()
+//let test = UniProtProvider.ByKeyWord<"H">()
 
-test.ByOrganism<"Hu">().Hu
+//test.ByOrganism<"Hu">().Hu
 
 
 [<Test>]
 let ``ById and ByKeyWord return the same`` () =
-    let genes1 = human1.P42694.genes
-    let genes2 = human2.P42694.genes
-    let seq1 = human1.P42694.sequence
-    let seq2 = human2.P42694.sequence
+    let genes1 = human1.``Probable helicase with zinc finger domain``.genes.Value
+    let genes2 = human2.``Probable helicase with zinc finger domain``.genes.Value
+    let seq1 = human1.``Probable helicase with zinc finger domain``.sequence.Value
+    let seq2 = human2.``Probable helicase with zinc finger domain``.sequence.Value
     Assert.AreEqual(genes1, genes2)
     Assert.AreEqual(seq1, seq2)
     
