@@ -195,9 +195,15 @@ type ProtIncomplete =
         uniProtkbId : string
         proteinDescription : Description
     }
+type Suggestion =
+    {
+        query : string option
+        hits : obj option
+    }
 type IncompleteResult =
     {
         results : array<ProtIncomplete>
+        suggestions: array<Suggestion> option
     }
 
 module TypeGenerator = 
@@ -216,12 +222,12 @@ module TypeGenerator =
         prot.results[0]
 
     let genTypesByKeyWord (keyWord: string) = 
-        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size=10" |]
+        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size=5" |]
         let query = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let json = request query
         let prot = Json.deserializeEx<IncompleteResult> config json
-        prot.results
+        prot
 
 
 

@@ -48,7 +48,8 @@ let human1 = UniProtProvider.ById<"P42694">()
 
 let human2 = UniProtProvider.ByKeyWord<"Human">()
 
-//let test = UniProtProvider.ByKeyWord<"H">()
+let insulin = UniProtProvider.ByKeyWord<"Insul">()
+let insul = insulin.``ins.l``
 
 //test.ByOrganism<"Hu">().Hu
 

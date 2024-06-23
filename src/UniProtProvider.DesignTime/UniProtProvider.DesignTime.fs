@@ -204,7 +204,7 @@ type UniProtKBProvider (config : TypeProviderConfig) as this =
                         getterCode = (fun args -> <@@ TypeGenerator.genTypeById value @@>))
                     nestedType.AddMember p
 
-            addProps result prot
+            addProps result.results prot
             uniProtKB.AddMember prot
             prot
         )
@@ -283,6 +283,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             hideObjectMethods=true)
         prot.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         let result = TypeGenerator.genTypesByKeyWord (unbox<string> args.[0])
+
         let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
             for i in props do
                 let name = i.proteinDescription.recommendedName.Value.fullName.value
@@ -294,8 +295,48 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                     getterCode = (fun args -> <@@ TypeGenerator.genTypeById value @@>))
                 nestedType.AddMember p
 
-        addProps result prot
+        let addSuggestions (sug : array<Suggestion>) (nestedType : ProvidedTypeDefinition) =
+            for i in sug do
+                let query = i.query.Value
+                let result = TypeGenerator.genTypesByKeyWord query
+                let suggested = 
+                    ProvidedTypeDefinition(query, 
+                    Some typeof<obj>, 
+                    //isErased=false, 
+                    hideObjectMethods=true)
+                suggested.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
+                let getProps () =
+                    [ for i in result.results ->
+                        let name = i.proteinDescription.recommendedName.Value.fullName.value
+                        let value = i.uniProtkbId
+                        let p =
+                            ProvidedProperty(propertyName = name,
+                            propertyType = typeof<Prot>,
+                            getterCode = (fun _ -> <@@ TypeGenerator.genTypeById value @@>))
+                        p ]
+                suggested.AddMembersDelayed (getProps)
+                let p =
+                    ProvidedProperty(propertyName = query,
+                    propertyType = suggested,
+                    getterCode = (fun _ -> <@@ obj() @@>))
+                nestedType.AddMember suggested
+                nestedType.AddMember p
+                
 
+            (*
+                let query = i.query.Value
+                let p =
+                    ProvidedProperty(propertyName = query,
+                    propertyType = typeof<IncompleteResult>,
+                    //isStatic = true,
+                    getterCode = (fun args -> <@@ TypeGenerator.genTypesByKeyWord query @@>))
+                nestedType.AddMember p
+            *)
+
+        if result.results.Length = 0 then
+            addSuggestions result.suggestions.Value prot
+        else
+            addProps result.results prot
 
         let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
         byOrganism.DefineStaticParameters([ProvidedStaticParameter("Name", typeof<string>)], fun methName args ->
@@ -310,8 +351,6 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             m
         )
         prot.AddMember(byOrganism)
-
-
 
         retrieveByKeyWord.AddMember prot
         prot
