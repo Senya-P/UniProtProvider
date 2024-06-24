@@ -48,8 +48,13 @@ let human1 = UniProtProvider.ById<"P42694">()
 
 let human2 = UniProtProvider.ByKeyWord<"Human">()
 
-let insulin = UniProtProvider.ByKeyWord<"Insul">()
-let insul = insulin.``ins.l``
+let insul = UniProtProvider.ByKeyWord<"insul">()
+
+let insul_ = insul.insult.``MORN repeat-containing protein 4``
+
+let sqwq = UniProtProvider.ByKeyWord<"sqwq">()
+
+let sqwq_ = sqwq.sqwf.``Sulfoacetaldehyde reductase``
 
 //test.ByOrganism<"Hu">().Hu
 

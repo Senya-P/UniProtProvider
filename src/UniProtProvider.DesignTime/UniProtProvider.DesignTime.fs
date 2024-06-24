@@ -300,29 +300,27 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 let query = i.query.Value
                 let result = TypeGenerator.genTypesByKeyWord query
                 let suggested = 
-                    ProvidedTypeDefinition(query, 
-                    Some typeof<obj>, 
-                    //isErased=false, 
+                    ProvidedTypeDefinition("InnerType" + string(nextNumber()),
+                    Some typeof<obj>,
                     hideObjectMethods=true)
                 suggested.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
                 let getProps () =
-                    [ for i in result.results ->
+                    [for i in result.results do
                         let name = i.proteinDescription.recommendedName.Value.fullName.value
                         let value = i.uniProtkbId
                         let p =
                             ProvidedProperty(propertyName = name,
                             propertyType = typeof<Prot>,
                             getterCode = (fun _ -> <@@ TypeGenerator.genTypeById value @@>))
-                        p ]
+                        p]
+                    //suggested.AddMember p
                 suggested.AddMembersDelayed (getProps)
+                nestedType.AddMember suggested
                 let p =
-                    ProvidedProperty(propertyName = query,
+                    ProvidedProperty(propertyName=query,
                     propertyType = suggested,
                     getterCode = (fun _ -> <@@ obj() @@>))
-                nestedType.AddMember suggested
                 nestedType.AddMember p
-                
-
             (*
                 let query = i.query.Value
                 let p =

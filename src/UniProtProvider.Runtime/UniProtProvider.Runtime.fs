@@ -206,6 +206,8 @@ type IncompleteResult =
         suggestions: array<Suggestion> option
     }
 
+type Dummy () = class end
+
 module TypeGenerator = 
     open ProviderImplementation.ProvidedTypes
     let request (query: string) =
