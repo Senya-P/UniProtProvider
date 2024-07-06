@@ -3,6 +3,7 @@ namespace UniProtProvider.RunTime
 open System
 open FSharp.Json
 open System.Net.Http
+
 // Put any utilities here
 [<AutoOpen>]
 module internal Utilities = 
@@ -206,17 +207,21 @@ type IncompleteResult =
         suggestions: array<Suggestion> option
     }
 
-type Dummy () = class end
-
 module TypeGenerator = 
-    open ProviderImplementation.ProvidedTypes
+
+    let resultSize = 5
+    type Params(keyword : string) =
+        member x.keyword = keyword
+        [<DefaultValue>] val mutable organism : string
+
+
     let request (query: string) =
         let client = new HttpClient()
         let response = client.GetStringAsync(query)
         response.Result
 
     let genTypeById (id: string) =
-        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json&size=1" |]
+        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json" |]
         let query = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let json = request query
@@ -224,10 +229,25 @@ module TypeGenerator =
         prot.results[0]
 
     let genTypesByKeyWord (keyWord: string) = 
-        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size=5" |]
+        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size="; string(resultSize) |]
         let query = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let json = request query
+        let prot = Json.deserializeEx<IncompleteResult> config json
+        prot
+
+    let genTypesWithParams (param: Params) = 
+        let mutable parts : string list = []
+        parts <- "https://rest.uniprot.org/uniprotkb/search?format=json&size=" :: parts
+        parts <- string(resultSize) :: parts
+        parts <- "&query=" :: parts
+        parts <- param.keyword :: parts
+        if param.organism <> "" then 
+            parts <- "+AND+(organism_name:" + param.organism + ")" :: parts
+
+        let query = System.String.Concat(parts |> List.rev |> List.toArray)
+        let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
+        let json = request query //"https://rest.uniprot.org/uniprotkb/search?format=json&size=5&query=insulin+AND+(organism_name:human)"
         let prot = Json.deserializeEx<IncompleteResult> config json
         prot
 

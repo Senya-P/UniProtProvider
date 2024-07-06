@@ -48,16 +48,19 @@ let human1 = UniProtProvider.ById<"P42694">()
 
 let human2 = UniProtProvider.ByKeyWord<"Human">()
 
-let insul = UniProtProvider.ByKeyWord<"insul">()
+let keratin = UniProtProvider.ByKeyWord<"keratin">()
 
-let insul_ = insul.insult.``MORN repeat-containing protein 4``
+let insul = UniProtProvider.ByKeyWord<"insul">()
+// let q = UniProtProvider.ByKeyWord<"qqqqq">()
+//let insul_ = insul.indus.ByOrganism<"human">()
 
 let sqwq = UniProtProvider.ByKeyWord<"sqwq">()
 
 let sqwq_ = sqwq.sqwf.``Sulfoacetaldehyde reductase``
 
-//test.ByOrganism<"Hu">().Hu
+let keratin_ = keratin.ByOrganism<"human">().``Keratin-like protein KRT222``
 
+let insul_ = insul.insult.ByOrganism<"mouse">().``C-C chemokine receptor type 6``
 
 [<Test>]
 let ``ById and ByKeyWord return the same`` () =
@@ -67,4 +70,3 @@ let ``ById and ByKeyWord return the same`` () =
     let seq2 = human2.``Probable helicase with zinc finger domain``.sequence.Value
     Assert.AreEqual(genes1, genes2)
     Assert.AreEqual(seq1, seq2)
-    
