@@ -343,7 +343,8 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 nestedType.AddMember p
 
         if result.results.Length = 0 then
-            addSuggestions result.suggestions.Value prot
+            if result.suggestions.IsSome && result.suggestions.Value.Length <> 0 then
+                addSuggestions result.suggestions.Value prot
         else
             prot.AddMembersDelayed (getProps result.results)
             let param = TypeGenerator.Params(query)
