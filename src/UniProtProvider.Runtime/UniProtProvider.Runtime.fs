@@ -3,6 +3,7 @@ namespace UniProtProvider.RunTime
 open System
 open FSharp.Json
 open System.Net.Http
+open System.Net.Http.Headers
 
 // Put any utilities here
 [<AutoOpen>]
@@ -213,13 +214,23 @@ module TypeGenerator =
     type Params(keyword : string) =
         member x.keyword = keyword
         [<DefaultValue>] val mutable organism : string
+        [<DefaultValue>] val mutable cursor : string
+
+    let parseLinkHeader (headers: HttpResponseHeaders) =
+        if headers.Contains("Link") then
+            let linkHeader = headers.GetValues("Link") |> Seq.head
+            let regex = System.Text.RegularExpressions.Regex("cursor=([^&]+)")
+            let match_ = regex.Match(linkHeader)
+            if match_.Success then Some(match_.Groups.[1].Value)
+            else None
+        else None
 
 
     let request (query: string) =
         let client = new HttpClient()
-        let response = client.GetStringAsync(query)
-        response.Result
+        client.GetStringAsync(query).Result
 
+    
     let genTypeById (id: string) =
         let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json" |]
         let query = System.String.Concat(parts)
@@ -228,29 +239,33 @@ module TypeGenerator =
         let prot = Json.deserializeEx<Result> config json
         prot.results[0]
 
-    let genTypesByKeyWord (keyWord: string) = 
-        let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; keyWord; "&format=json&size="; string(resultSize) |]
-        let query = System.String.Concat(parts)
-        let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
-        let json = request query
-        let prot = Json.deserializeEx<IncompleteResult> config json
-        prot
-
-    let genTypesWithParams (param: Params) = 
+    let buildQuery (param: Params) =
         let mutable parts : string list = []
         parts <- "https://rest.uniprot.org/uniprotkb/search?format=json&size=" :: parts
         parts <- string(resultSize) :: parts
+        match param.cursor with
+        | null -> ()
+        | value -> parts <- "&cursor=" + value :: parts
         parts <- "&query=" :: parts
         parts <- param.keyword :: parts
-        if param.organism <> "" then 
-            parts <- "+AND+(organism_name:" + param.organism + ")" :: parts
-
+        match param.organism with 
+        | null -> ()
+        | value ->  parts <- "+AND+(organism_name:" + value + ")" :: parts
         let query = System.String.Concat(parts |> List.rev |> List.toArray)
+        query
+
+    let genTypesByKeyWord (param: Params) = 
+        let query = buildQuery param
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let json = request query //"https://rest.uniprot.org/uniprotkb/search?format=json&size=5&query=insulin+AND+(organism_name:human)"
         let prot = Json.deserializeEx<IncompleteResult> config json
         prot
 
+    let getCursor (param: Params) =
+        let client = new HttpClient()
+        let query = buildQuery param
+        let response = client.GetAsync(query)
+        parseLinkHeader response.Result.Headers
 
 
 // Put the TypeProviderAssemblyAttribute in the runtime DLL, pointing to the design-time DLL

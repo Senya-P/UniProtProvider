@@ -102,118 +102,6 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
         this.AddNamespace(ns, [myParamType])
 
 [<TypeProvider>]
-type UniProtKBProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("UniProtProvider.DesignTime", "UniProtProvider.Runtime")])
-    let ns = "UniProtProvider"
-    let asm = Assembly.GetExecutingAssembly()
-    // check we contain a copy of runtime files, and are not referencing the runtime DLL
-    do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)  
-
-    (*
-    let genStaticProps (props : array<ProtIncomplete>) = 
-        let staticProps = [
-            for i in props do
-                let valueOfTheProperty = string i.uniProtkbId
-                let p =
-                    ProvidedProperty(propertyName = valueOfTheProperty,
-                    propertyType = typeof<string>,
-                    isStatic = true,
-                    getterCode= (fun args -> <@@ valueOfTheProperty @@>))
-                p
-        ]
-        staticProps
-    *)
-    (*
-    let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
-        for i in props do
-            let valueOfTheProperty = i.uniProtkbId
-            let p =
-                ProvidedProperty(propertyName = valueOfTheProperty,
-                propertyType = typeof<Prot>,
-                isStatic = true,
-                getterCode= (fun args -> <@@ TypeGenerator.genTypeById valueOfTheProperty @@>))
-            nestedType.AddMember p
-
-    let prot = ProvidedTypeDefinition("Prot", Some typeof<obj>, isErased=false)
-    addProps (TypeGenerator.genTypesByKeyWord "human") prot
-    uniProtKB.AddMember prot
-    *)
-    (*
-    let retrieveByKeyWord = ProvidedMethod("ByKeyWord", 
-        [ProvidedParameter("KeyWord", typeof<string>)], 
-        typeof<array<ProtIncomplete>>,
-        isStatic=true,
-        invokeCode = (fun args -> <@@ TypeGenerator.genTypesByKeyWord  (%%(args.[0]):string) @@>))
-        
-    retrieveByKeyWord.DefineStaticParameters( [ProvidedStaticParameter("Count", typeof<string>)], fun methodName args -> 
-        if unbox<string> args.[0] = "test" then
-            let m = ProvidedMethod(methodName, [], typeof<int>, (fun _ -> <@@ 1 @@>), isStatic=true)
-            uniProtKB.AddMember m
-            m
-        else
-            let m = ProvidedMethod(methodName, [], typeof<string>, (fun _ -> <@@ "result" @@>), isStatic=true)
-            uniProtKB.AddMember m
-            m 
-        
-        )
-    *)
-    (*
-    let retrieveByKeyWord = ProvidedMethod("ByKeyWord", 
-        [], 
-        typeof<obj>,
-        invokeCode = (fun _ -> <@@ obj() @@>),
-        isStatic=true)
-        *)
-    let buildType() =
-        let asm = ProvidedAssembly()
-        let uniProtKB = 
-            ProvidedTypeDefinition(asm, 
-            ns, 
-            "UniProtKBProvider", 
-            Some typeof<obj>, 
-            isErased=false)
-        
-        let retrieveById = ProvidedMethod("ById", 
-            [ProvidedParameter("UniProtKBId", typeof<string>)], 
-            typeof<Prot>, 
-            isStatic=true,
-            invokeCode = (fun args -> <@@ TypeGenerator.genTypeById  (%%(args.[0]):string)  @@>))
-        uniProtKB.AddMember(retrieveById)
-        
-        let retrieveByKeyWord = 
-            ProvidedTypeDefinition("ByKeyWord", 
-            Some typeof<obj>, 
-            isErased=false, 
-            hideObjectMethods=true)
-        let parameter = ProvidedStaticParameter("KeyWord", typeof<string>)
-        retrieveByKeyWord.DefineStaticParameters( [parameter], fun typeName args ->
-            let prot = 
-                ProvidedTypeDefinition(typeName, 
-                Some typeof<obj>, 
-                isErased=false, 
-                hideObjectMethods=true)
-            let result = TypeGenerator.genTypesByKeyWord (unbox<string> args.[0])
-            let addProps (props : array<ProtIncomplete>) (nestedType : ProvidedTypeDefinition) =
-                for i in props do
-                    let name = i.primaryAccession
-                    let value = i.uniProtkbId
-                    let p =
-                        ProvidedProperty(propertyName = name,
-                        propertyType = typeof<Prot>,
-                        isStatic = true,
-                        getterCode = (fun args -> <@@ TypeGenerator.genTypeById value @@>))
-                    nestedType.AddMember p
-
-            addProps result.results prot
-            uniProtKB.AddMember prot
-            prot
-        )
-        uniProtKB.AddMember(retrieveByKeyWord)
-        asm.AddTypes [ uniProtKB ]
-        uniProtKB
-    do this.AddNamespace(ns, [buildType()])
-
-[<TypeProvider>]
 type ById (config : TypeProviderConfig) as this = 
     inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("UniProtProvider.DesignTime", "UniProtProvider.Runtime")])
     let ns = "UniProtProvider"
@@ -283,8 +171,8 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             hideObjectMethods=true)
         prot.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         let query = unbox<string> args.[0]
-        let result = TypeGenerator.genTypesByKeyWord query
-
+        let param = TypeGenerator.Params(query)
+        let result = TypeGenerator.genTypesByKeyWord param
         let getProps (props : array<ProtIncomplete>) () =
             [for i in props do
                 let name = i.proteinDescription.recommendedName.Value.fullName.value
@@ -305,7 +193,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>, true)
                 //t.AddMember(ProvidedProperty(name, typeof<string>, getterCode=fun _ -> <@@ name @@>))
                 //prot.AddMember(t)
-                let res = TypeGenerator.genTypesWithParams param
+                let res = TypeGenerator.genTypesByKeyWord param
                 t.AddMembersDelayed(getProps res.results)
                 t.AddMemberDelayed(addByOrganism param)
                 prot.AddMember(t)
@@ -323,7 +211,8 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         let addSuggestions (sug : array<Suggestion>) (nestedType : ProvidedTypeDefinition) =
             for i in sug do
                 let query = i.query.Value
-                let result = TypeGenerator.genTypesByKeyWord query
+                let param = TypeGenerator.Params(query)
+                let result = TypeGenerator.genTypesByKeyWord param
                 let suggested = 
                     ProvidedTypeDefinition("InnerType" + string(nextNumber()),
                     Some typeof<obj>,
@@ -342,13 +231,38 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                     getterCode = (fun _ -> <@@ obj() @@>))
                 nestedType.AddMember p
 
+        let addNext (param: TypeGenerator.Params) (nestedType : ProvidedTypeDefinition) =
+
+            let result = TypeGenerator.genTypesByKeyWord param
+            let next = 
+                ProvidedTypeDefinition("InnerType" + string(nextNumber()),
+                Some typeof<obj>,
+                hideObjectMethods=true)
+
+            next.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
+            next.AddMembersDelayed (getProps result.results)
+
+            next.AddMemberDelayed(addByOrganism param)
+
+            nestedType.AddMember next
+            let p =
+                ProvidedProperty(propertyName="More...",
+                propertyType = next,
+                getterCode = (fun _ -> <@@ obj() @@>))
+            nestedType.AddMember p
+
         if result.results.Length = 0 then
             if result.suggestions.IsSome && result.suggestions.Value.Length <> 0 then
                 addSuggestions result.suggestions.Value prot
         else
-            prot.AddMembersDelayed (getProps result.results)
+            prot.AddMembersDelayed(getProps result.results)
             let param = TypeGenerator.Params(query)
             prot.AddMemberDelayed(addByOrganism param)
+            let nextParam = param
+            let cursor = TypeGenerator.getCursor param
+            if cursor.IsSome then
+                nextParam.cursor <- cursor.Value
+                addNext nextParam prot
 
         retrieveByKeyWord.AddMember prot
         prot

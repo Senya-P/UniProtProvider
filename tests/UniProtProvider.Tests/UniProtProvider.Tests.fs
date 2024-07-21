@@ -9,6 +9,8 @@ let human1 = UniProtProvider.ById<"P42694">()
 
 let human2 = UniProtProvider.ByKeyWord<"Human">()
 
+let h_ = human2
+
 let keratin = UniProtProvider.ByKeyWord<"keratin">()
 
 let insul = UniProtProvider.ByKeyWord<"insul">()
@@ -19,11 +21,9 @@ let sqwq = UniProtProvider.ByKeyWord<"sqwq">()
 
 let sqwq_ = sqwq.sqwf.``Sulfoacetaldehyde reductase``
 
-let keratin_ = keratin.ByOrganism<"human">().``Keratin-like protein KRT222``
+let keratin_ = keratin.ByOrganism<"human">().``Keratin, type I cytoskeletal 14``.genes
 
 let insul_ = insul.insult.ByOrganism<"mou">().ByOrganism<"mouse">().``C-C chemokine receptor type 6``
-
-
 
 
 
@@ -37,7 +37,7 @@ let ``ById and ByKeyWord return the same`` () =
     Assert.AreEqual(seq1, seq2)
 
 [<Test>]
-let ``Non-existing keyword returns empty result`` () =
+let ``Non existing keyword returns empty result`` () =
     let q = UniProtProvider.ByKeyWord<"qqqqqq">() // does not fail with error
     Assert.AreEqual(true, true)
 
