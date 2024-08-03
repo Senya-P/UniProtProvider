@@ -159,7 +159,6 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         ns,
         "ByKeyWord", 
         Some typeof<obj>, 
-        //isErased=false, 
         hideObjectMethods=true)
     do retrieveByKeyWord.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
     let parameter = ProvidedStaticParameter("KeyWord", typeof<string>)
@@ -167,7 +166,6 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         let prot = 
             ProvidedTypeDefinition(typeName, 
             Some typeof<obj>, 
-            //isErased=false, 
             hideObjectMethods=true)
         prot.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         let query = unbox<string> args.[0]
@@ -180,9 +178,9 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 let p =
                     ProvidedProperty(propertyName = name,
                     propertyType = typeof<Prot>,
-                    //isStatic = true,
                     getterCode = (fun args -> <@@ TypeGenerator.genTypeById value @@>))
                 p]
+
 
         let rec addByOrganism (param : TypeGenerator.Params) () = 
             let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
@@ -191,11 +189,14 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 param.organism <- name
 
                 let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>, true)
-                //t.AddMember(ProvidedProperty(name, typeof<string>, getterCode=fun _ -> <@@ name @@>))
-                //prot.AddMember(t)
                 let res = TypeGenerator.genTypesByKeyWord param
                 t.AddMembersDelayed(getProps res.results)
                 t.AddMemberDelayed(addByOrganism param)
+
+                let cursor = TypeGenerator.getCursor param
+                if cursor.IsSome then
+                    let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+                    t.AddMemberDelayed(addNext nextParam t)
                 prot.AddMember(t)
 
                 let m = ProvidedMethod(methName, [], t, invokeCode = fun _ -> <@@ obj() @@>)
@@ -204,7 +205,32 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             )
             byOrganism
 
-        let rec byTaxonomy () = 
+        and addNext (param: TypeGenerator.Params) (nestedType: ProvidedTypeDefinition) () =
+
+            let result = TypeGenerator.genTypesByKeyWord param
+            let next = 
+                ProvidedTypeDefinition("InnerType" + string(nextNumber()),
+                Some typeof<obj>,
+                hideObjectMethods=true)
+
+            next.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
+            next.AddMembersDelayed (getProps result.results)
+            next.AddMemberDelayed (addByOrganism param)
+
+            nestedType.AddMember next
+
+            let cursor = TypeGenerator.getCursor param
+            if cursor.IsSome then
+                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+                next.AddMemberDelayed(addNext nextParam next)
+
+            let p =
+                ProvidedProperty(propertyName="More...",
+                propertyType = next,
+                getterCode = (fun _ -> <@@ obj() @@>))
+            p
+
+        and  byTaxonomy () = 
             let byTaxonomy = ProvidedMethod("ByTaxonName", [], typeof<obj>)
             byTaxonomy
 
@@ -224,6 +250,11 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 let param = TypeGenerator.Params(query)
                 suggested.AddMemberDelayed(addByOrganism param)
 
+                let cursor = TypeGenerator.getCursor param
+                if cursor.IsSome then
+                    let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+                    suggested.AddMemberDelayed(addNext nextParam suggested)
+
                 nestedType.AddMember suggested
                 let p =
                     ProvidedProperty(propertyName=query,
@@ -231,38 +262,16 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                     getterCode = (fun _ -> <@@ obj() @@>))
                 nestedType.AddMember p
 
-        let addNext (param: TypeGenerator.Params) (nestedType : ProvidedTypeDefinition) =
-
-            let result = TypeGenerator.genTypesByKeyWord param
-            let next = 
-                ProvidedTypeDefinition("InnerType" + string(nextNumber()),
-                Some typeof<obj>,
-                hideObjectMethods=true)
-
-            next.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
-            next.AddMembersDelayed (getProps result.results)
-
-            next.AddMemberDelayed(addByOrganism param)
-
-            nestedType.AddMember next
-            let p =
-                ProvidedProperty(propertyName="More...",
-                propertyType = next,
-                getterCode = (fun _ -> <@@ obj() @@>))
-            nestedType.AddMember p
-
         if result.results.Length = 0 then
             if result.suggestions.IsSome && result.suggestions.Value.Length <> 0 then
                 addSuggestions result.suggestions.Value prot
         else
             prot.AddMembersDelayed(getProps result.results)
-            let param = TypeGenerator.Params(query)
             prot.AddMemberDelayed(addByOrganism param)
-            let nextParam = param
             let cursor = TypeGenerator.getCursor param
             if cursor.IsSome then
-                nextParam.cursor <- cursor.Value
-                addNext nextParam prot
+                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+                prot.AddMemberDelayed(addNext nextParam prot)
 
         retrieveByKeyWord.AddMember prot
         prot

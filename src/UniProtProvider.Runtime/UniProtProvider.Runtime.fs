@@ -215,6 +215,7 @@ module TypeGenerator =
         member x.keyword = keyword
         [<DefaultValue>] val mutable organism : string
         [<DefaultValue>] val mutable cursor : string
+        member this.Clone() = this.MemberwiseClone() :?> Params
 
     let parseLinkHeader (headers: HttpResponseHeaders) =
         if headers.Contains("Link") then
