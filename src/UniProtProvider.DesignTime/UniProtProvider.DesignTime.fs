@@ -196,7 +196,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 let cursor = TypeGenerator.getCursor param
                 if cursor.IsSome then
                     let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-                    t.AddMemberDelayed(addNext nextParam t)
+                    t.AddMemberDelayed(addNext nextParam)
                 prot.AddMember(t)
 
                 let m = ProvidedMethod(methName, [], t, invokeCode = fun _ -> <@@ obj() @@>)
@@ -205,7 +205,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             )
             byOrganism
 
-        and addNext (param: TypeGenerator.Params) (nestedType: ProvidedTypeDefinition) () =
+        and addNext (param: TypeGenerator.Params) () =
 
             let result = TypeGenerator.genTypesByKeyWord param
             let next = 
@@ -217,12 +217,12 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             next.AddMembersDelayed (getProps result.results)
             next.AddMemberDelayed (addByOrganism param)
 
-            nestedType.AddMember next
+            prot.AddMember next
 
             let cursor = TypeGenerator.getCursor param
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-                next.AddMemberDelayed(addNext nextParam next)
+                next.AddMemberDelayed(addNext nextParam)
 
             let p =
                 ProvidedProperty(propertyName="More...",
@@ -234,7 +234,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             let byTaxonomy = ProvidedMethod("ByTaxonName", [], typeof<obj>)
             byTaxonomy
 
-        let addSuggestions (sug : array<Suggestion>) (nestedType : ProvidedTypeDefinition) =
+        let addSuggestions (sug : array<Suggestion>) =
             for i in sug do
                 let query = i.query.Value
                 let param = TypeGenerator.Params(query)
@@ -253,25 +253,25 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 let cursor = TypeGenerator.getCursor param
                 if cursor.IsSome then
                     let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-                    suggested.AddMemberDelayed(addNext nextParam suggested)
+                    suggested.AddMemberDelayed(addNext nextParam)
 
-                nestedType.AddMember suggested
+                prot.AddMember suggested
                 let p =
                     ProvidedProperty(propertyName=query,
                     propertyType = suggested,
                     getterCode = (fun _ -> <@@ obj() @@>))
-                nestedType.AddMember p
+                prot.AddMember p
 
         if result.results.Length = 0 then
             if result.suggestions.IsSome && result.suggestions.Value.Length <> 0 then
-                addSuggestions result.suggestions.Value prot
+                addSuggestions result.suggestions.Value
         else
             prot.AddMembersDelayed(getProps result.results)
             prot.AddMemberDelayed(addByOrganism param)
             let cursor = TypeGenerator.getCursor param
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-                prot.AddMemberDelayed(addNext nextParam prot)
+                prot.AddMemberDelayed(addNext nextParam)
 
         retrieveByKeyWord.AddMember prot
         prot
