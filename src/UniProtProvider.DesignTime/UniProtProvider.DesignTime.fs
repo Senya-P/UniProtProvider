@@ -193,7 +193,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 t.AddMembersDelayed(getProps res.results)
                 t.AddMemberDelayed(addByOrganism param)
 
-                let cursor = TypeGenerator.getCursor param
+                let cursor = TypeGenerator.getCursor param |> Async.RunSynchronously
                 if cursor.IsSome then
                     let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                     t.AddMemberDelayed(addNext nextParam)
@@ -219,7 +219,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
 
             prot.AddMember next
 
-            let cursor = TypeGenerator.getCursor param
+            let cursor = TypeGenerator.getCursor param |> Async.RunSynchronously
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 next.AddMemberDelayed(addNext nextParam)
@@ -250,7 +250,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
                 let param = TypeGenerator.Params(query)
                 suggested.AddMemberDelayed(addByOrganism param)
 
-                let cursor = TypeGenerator.getCursor param
+                let cursor = TypeGenerator.getCursor param |> Async.RunSynchronously
                 if cursor.IsSome then
                     let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                     suggested.AddMemberDelayed(addNext nextParam)
@@ -268,7 +268,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         else
             prot.AddMembersDelayed(getProps result.results)
             prot.AddMemberDelayed(addByOrganism param)
-            let cursor = TypeGenerator.getCursor param
+            let cursor = TypeGenerator.getCursor param |> Async.RunSynchronously
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 prot.AddMemberDelayed(addNext nextParam)

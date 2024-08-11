@@ -227,17 +227,25 @@ module TypeGenerator =
         else None
 
 
-    let request (query: string) =
-        let client = new HttpClient()
-        client.GetStringAsync(query).Result
+    let request (query: string) = async {
+        use client = new HttpClient()
+        let! result = client.GetStringAsync(query) |> Async.AwaitTask
+        return result
+    }
+
 
     let genTypeById (id: string) =
         let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json" |]
         let query = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
-        let json = request query
+        let jsonTask = request query
+        let json = Async.RunSynchronously jsonTask
         let prot = Json.deserializeEx<Result> config json
         prot.results[0]
+
+    let LEFT_PARENTHESIS = "%28"
+    let RIGHT_PARENTHESIS = "%29"
+    let COLON = "%3A"
 
     let buildQuery (param: Params) =
         let mutable parts : string list = []
@@ -251,22 +259,24 @@ module TypeGenerator =
         parts <- param.keyword :: parts
         match param.organism with 
         | null -> ()
-        | value ->  parts <- "+AND+(organism_name:" + value + ")" :: parts
+        | value ->  parts <- "+AND+" + LEFT_PARENTHESIS + "organism_name" + COLON + value + RIGHT_PARENTHESIS :: parts
         let query = System.String.Concat(parts |> List.rev |> List.toArray)
         query
 
     let genTypesByKeyWord (param: Params) = 
         let query = buildQuery param
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
-        let json = request query //"https://rest.uniprot.org/uniprotkb/search?format=json&size=5&query=insulin+AND+(organism_name:human)"
+        let jsonTask = request query //"https://rest.uniprot.org/uniprotkb/search?format=json&size=5&query=insulin+AND+(organism_name:human)"
+        let json = Async.RunSynchronously jsonTask
         let prot = Json.deserializeEx<IncompleteResult> config json
         prot
 
-    let getCursor (param: Params) =
-        let client = new HttpClient()
+    let getCursor (param: Params) = async {
+        use client = new HttpClient()
         let query = buildQuery param
-        let response = client.GetAsync(query)
-        parseLinkHeader response.Result.Headers
+        let! response = client.GetAsync(query) |> Async.AwaitTask
+        return parseLinkHeader response.Headers
+    }
 
 
 // Put the TypeProviderAssemblyAttribute in the runtime DLL, pointing to the design-time DLL
