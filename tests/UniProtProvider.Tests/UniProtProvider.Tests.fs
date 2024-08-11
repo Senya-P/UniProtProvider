@@ -14,6 +14,7 @@ let h_ = human2.``More...``.``More...``
 let keratin = UniProtProvider.ByKeyWord<"keratin">()
 let keratin2_ = keratin.ByOrganism<"mou">().ByOrganism<"mous">().ByOrganism<"mouse">()
 
+let keratin3_ = keratin.ByOrganism<"mouse">().``More...``.``Keratin, type II cytoskeletal 6B``
 let insul = UniProtProvider.ByKeyWord<"insul">()
 
 //let insul_ = insul.indus.ByOrganism<"human">()
@@ -24,8 +25,7 @@ let sqwq_ = sqwq.sqwf.``Sulfoacetaldehyde reductase``
 
 let keratin_ = keratin.ByOrganism<"human">()
 
-//let insul_ = insul.insult.ByOrganism<"mou">().ByOrganism<"mouse">()
-
+// let insulin = UniProtProvider.ByKeyWord<"insulin">() //error
 
 
 [<Test>]
