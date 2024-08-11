@@ -193,7 +193,7 @@ type Result =
     }
 type ProtIncomplete =
     {
-        primaryAccession : string
+        //primaryAccession : string
         uniProtkbId : string
         proteinDescription : Description
     }
@@ -231,7 +231,6 @@ module TypeGenerator =
         let client = new HttpClient()
         client.GetStringAsync(query).Result
 
-    
     let genTypeById (id: string) =
         let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json" |]
         let query = System.String.Concat(parts)
@@ -244,6 +243,7 @@ module TypeGenerator =
         let mutable parts : string list = []
         parts <- "https://rest.uniprot.org/uniprotkb/search?format=json&size=" :: parts
         parts <- string(resultSize) :: parts
+        parts <- "&fields=id,protein_name" :: parts
         match param.cursor with
         | null -> ()
         | value -> parts <- "&cursor=" + value :: parts
