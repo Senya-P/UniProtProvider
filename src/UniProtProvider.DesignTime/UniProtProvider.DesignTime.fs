@@ -123,7 +123,7 @@ type ById (config : TypeProviderConfig) as this =
         let id = (unbox<string> args.[0])
         let result = TypeGenerator.genTypeById id
         let value = result.uniProtkbId
-        let name = result.proteinDescription.recommendedName.Value.fullName.value
+        let name =  System.String.Concat(result.proteinDescription.recommendedName.Value.fullName.value, " (", result.uniProtkbId, ")")
         let prot = 
             ProvidedTypeDefinition(typeName, 
             Some typeof<obj>,
@@ -173,7 +173,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         let result = TypeGenerator.genTypesByKeyWord param
         let getProps (props : array<ProtIncomplete>) () =
             [for i in props do
-                let name = i.proteinDescription.recommendedName.Value.fullName.value
+                let name = System.String.Concat(i.proteinDescription.recommendedName.Value.fullName.value, " (", i.uniProtkbId, ")")
                 let value = i.uniProtkbId
                 let p =
                     ProvidedProperty(propertyName = name,

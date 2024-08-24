@@ -69,7 +69,8 @@ type Fullname =
     }
 type Name = 
     {
-        fullName: Fullname
+        fullName : Fullname
+        ecNumbers : array<Fullname> option
         shortNames : array<Fullname> option
     }
 
@@ -81,7 +82,10 @@ type Gen =
 type Description = 
     {
         recommendedName : Name option
-        alternativeNames: array<Name> option
+        cdAntigenNames : array<Fullname> option
+        alternativeNames : array<Name> option
+        contains : array<Description> option
+        flag : string option
     }
 type Feature = 
     {
