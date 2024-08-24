@@ -17,6 +17,9 @@
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="..\UniProtProvider.Runtime\UniProtProvider.Runtime.fs" />
+    <Compile Include="..\UniProtProvider.Runtime\Types.fs" />
+    <Compile Include="..\UniProtProvider.Runtime\Client.fs" />
+    <Compile Include="UniProtProvider.DesignTime.InnerTypes.fs" />
     <Compile Include="UniProtProvider.DesignTime.fs" />
     <None Include="paket.references" />
   </ItemGroup>
