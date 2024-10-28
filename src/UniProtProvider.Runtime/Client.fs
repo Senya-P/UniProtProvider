@@ -6,14 +6,24 @@ open System.Net.Http.Headers
 open Types
 
 module UniProtClient = 
-    let resultSize = 5
+
+    let private resultSize = 5
+
+    type EntityType =
+    | ProteinType of UniProtKBIncomplete
+    | TaxonomyType of TaxonomyIncomplete
+    type Entity =
+    | Taxonomy = 0
+    | Protein = 1
+
     type Params(keyword : string) =
         member x.keyword = keyword
+        [<DefaultValue>] val mutable entity : Entity
         [<DefaultValue>] val mutable organism : string
         [<DefaultValue>] val mutable cursor : string
         member this.Clone() = this.MemberwiseClone() :?> Params
 
-    let parseLinkHeader (headers: HttpResponseHeaders) =
+    let private parseLinkHeader (headers: HttpResponseHeaders) =
         if headers.Contains("Link") then
             let linkHeader = headers.GetValues("Link") |> Seq.head
             let regex = System.Text.RegularExpressions.Regex("cursor=([^&]+)")
@@ -23,7 +33,7 @@ module UniProtClient =
         else None
 
 
-    let request (url: string) = async {
+    let private request (url: string) = async {
         use client = new HttpClient()
         let! result = client.GetStringAsync(url) |> Async.AwaitTask
         return result
@@ -36,15 +46,24 @@ module UniProtClient =
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let jsonTask = request url
         let json = Async.RunSynchronously jsonTask
-        let prot = Json.deserializeEx<Result> config json
+        let prot = Json.deserializeEx<ProteinResult> config json
         prot.results[0]
 
-    let getHashedValue(url:string) =
+    let getOrganismById (id: int) =
+        let parts = [| "https://rest.uniprot.org/taxonomy/search?query="; string(id); "&format=json" |]
+        let url = System.String.Concat(parts)
+        let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
+        let jsonTask = request url
+        let json = Async.RunSynchronously jsonTask
+        let prot = Json.deserializeEx<TaxonomyResult> config json
+        prot.results[0]
+
+    let private getHashedValue(url:string) =
         let cityHash = System.Data.HashFunction.CityHash.CityHashFactory.Instance.Create(System.Data.HashFunction.CityHash.CityHashConfig(HashSizeInBits = 64))
         let hash = cityHash.ComputeHash(System.Text.Encoding.ASCII.GetBytes(url))
         hash.AsHexString()
 
-    let getPath (url: string) =
+    let private getPath (url: string) =
         let hashedValue = getHashedValue url
 
         let mutable currentDirectory = System.IO.DirectoryInfo(System.IO.Directory.GetCurrentDirectory())
@@ -57,26 +76,34 @@ module UniProtClient =
 
         System.IO.Path.Combine(path, hashedValue)
 
-    let cacheResult (path: string, contents: string) =
+    let private cacheResult (path: string, contents: string) =
         System.IO.File.WriteAllText(path, contents)
 
 
-    let getCachedResult (path: string) =
+    let private getCachedResult (path: string) =
     // check timestemps?
         if System.IO.File.Exists(path) then
             System.IO.File.ReadAllText path
         else ""
 
-    let LEFT_PARENTHESIS = "%28"
-    let RIGHT_PARENTHESIS = "%29"
-    let COLON = "%3A"
-    let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
+    let private LEFT_PARENTHESIS = "%28"
+    let private RIGHT_PARENTHESIS = "%29"
+    let private COLON = "%3A"
+    let private config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
 
-    let buildUrl (param: Params) =
+    let private buildUrl (param: Params) =
         let mutable parts : string list = []
-        parts <- "https://rest.uniprot.org/uniprotkb/search?format=json&size=" :: parts
+        parts <- "https://rest.uniprot.org/" :: parts
+        match param.entity with
+        | Entity.Protein -> parts <- "uniprotkb" :: parts
+        | Entity.Taxonomy -> parts <- "taxonomy" :: parts
+        | _ -> ()
+        parts <- "/search?format=json&size=" :: parts
         parts <- string(resultSize) :: parts
-        parts <- "&fields=id,protein_name" :: parts
+        match param.entity with
+        | Entity.Protein -> parts <- "&fields=id,protein_name" :: parts
+        | Entity.Taxonomy -> parts <- "&fields=id,scientific_name" :: parts
+        | _ -> ()
         match param.cursor with
         | null -> ()
         | value -> parts <- "&cursor=" + value :: parts
@@ -87,23 +114,32 @@ module UniProtClient =
         | value ->  parts <- "+AND+" + LEFT_PARENTHESIS + "organism_name" + COLON + value + RIGHT_PARENTHESIS :: parts
         System.String.Concat(parts |> List.rev |> List.toArray)
 
-
-    let getProteinsByKeyWord (param: Params) =
-        let url = buildUrl param
+    let private getDeserializedResult<'T> (deserializeFunc: string -> 'T) (json: string) : 'T =
+        deserializeFunc json
+    let private getResultsByKeyWord (param: Params) (deserializeFunc: string -> 'T) : 'T =
+        let url = buildUrl (param)
         let path = getPath url
         let result = getCachedResult path
-        if result = "" then
-            let jsonTask = request url //"https://rest.uniprot.org/uniprotkb/search?format=json&size=5&query=insulin+AND+(organism_name:human)"
-            let json = Async.RunSynchronously jsonTask
-            cacheResult (path, json)
+        let json =
+            if result = "" then
+                let jsonTask = request url
+                let json = Async.RunSynchronously jsonTask
+                cacheResult (path, json)
+                json
+            else
+                result
+        getDeserializedResult deserializeFunc json
 
-            Json.deserializeEx<IncompleteResult> config json
-        else
-            Json.deserializeEx<IncompleteResult> config result
+    let getProteinsByKeyWord (param: Params) =
+        param.entity <- Entity.Protein
+        getResultsByKeyWord param (Json.deserializeEx<UniProtKBIncompleteResult> config)
 
+    let getOrganismsByKeyWord (param: Params) =
+        param.entity <- Entity.Taxonomy
+        getResultsByKeyWord param (Json.deserializeEx<TaxonomyIncompleteResult> config)
     let getCursor (param: Params) = async {
         use client = new HttpClient()
-        let url = buildUrl param
+        let url = buildUrl param 
         let! response = client.GetAsync(url) |> Async.AwaitTask
         return parseLinkHeader response.Headers
     }

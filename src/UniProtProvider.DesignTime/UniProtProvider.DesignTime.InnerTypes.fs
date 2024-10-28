@@ -8,17 +8,25 @@ module internal InnerTypes =
     let mutable count = 0
     let nextNumber() = count <- count + 1; count // serves to generate unique type names
 
-    let getProperties (props : array<ProtIncomplete>) () =
+    let getProteinProperties (props : array<UniProtKBIncomplete>) () =
         [for i in props do
             let name = System.String.Concat(i.proteinDescription.recommendedName.Value.fullName.value, " (", i.uniProtkbId, ")")
             let value = i.uniProtkbId
             let p =
                 ProvidedProperty(propertyName = name,
-                propertyType = typeof<Prot>,
+                propertyType = typeof<Protein>,
                 getterCode = (fun args -> <@@ getProteinById value @@>))
             p]
 
-
+    let getOrganismProperties (props: array<TaxonomyIncomplete>) () =
+        [for i in props do
+            let name = System.String.Concat(i.scientificName, " (", i.taxonId, ")")
+            let value = i.taxonId
+            let p =
+                ProvidedProperty(propertyName = name,
+                propertyType = typeof<Taxonomy>,
+                getterCode = (fun args -> <@@ getOrganismById value @@>))
+            p]
     let rec addByOrganism (param : Params) (outerType: ProvidedTypeDefinition) () = 
         let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
         byOrganism.DefineStaticParameters([ProvidedStaticParameter("Name", typeof<string>)], fun methName args ->
@@ -27,7 +35,7 @@ module internal InnerTypes =
 
             let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>, true)
             let result = getProteinsByKeyWord param
-            t.AddMembersDelayed(getProperties result.results)
+            t.AddMembersDelayed(getProteinProperties result.results)
             t.AddMemberDelayed(addByOrganism param t)
 
             let cursor = getCursor param |> Async.RunSynchronously
@@ -43,16 +51,21 @@ module internal InnerTypes =
         byOrganism
 
     and addNext (param: Params) (outerType: ProvidedTypeDefinition) () =
-
-        let result = getProteinsByKeyWord param
         let next = 
             ProvidedTypeDefinition("InnerType" + string(nextNumber()),
             Some typeof<obj>,
             hideObjectMethods=true)
-
         next.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
-        next.AddMembersDelayed (getProperties result.results)
-        next.AddMemberDelayed (addByOrganism param next)
+
+        match param.entity with
+        | Entity.Protein -> 
+            let result = getProteinsByKeyWord param
+            next.AddMembersDelayed (getProteinProperties result.results)
+            next.AddMemberDelayed (addByOrganism param next)
+        | Entity.Taxonomy ->
+            let result = getOrganismsByKeyWord param
+            next.AddMembersDelayed (getOrganismProperties result.results)
+        | _ -> ()
 
         outerType.AddMember next
 
@@ -82,7 +95,7 @@ module internal InnerTypes =
                 hideObjectMethods=true)
 
             suggested.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
-            suggested.AddMembersDelayed (getProperties result.results)
+            suggested.AddMembersDelayed (getProteinProperties result.results)
 
             let param = Params(keyword)
             suggested.AddMemberDelayed(addByOrganism param suggested)

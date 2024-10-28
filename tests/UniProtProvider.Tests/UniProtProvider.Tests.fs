@@ -52,4 +52,8 @@ let ``Results can be found with show more`` () =
     Assert.AreEqual(keratin1, keratin2)
 
 
-let insulin = UniProtProvider.ByKeyWord<"insulin">().``Insulin (INS_HUMAN)``.proteinDescription.contains.Value
+[<Test>]
+let ``Search by organism and by taxon id return the same`` () =
+    let human1 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.scientificName
+    let human2 = UniProtProvider.ByTaxonId<9606>().``Homo sapiens (9606)``.scientificName
+    Assert.AreEqual(human1, human2)

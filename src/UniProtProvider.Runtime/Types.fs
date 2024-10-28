@@ -147,7 +147,7 @@ type Comment =
         events : array<string> option
         isoforms : array<Isoform> option
     }
-type Prot = 
+type Protein = 
     {
         entryType : string option
         primaryAccession : string
@@ -168,13 +168,44 @@ type Prot =
         sequence : Sequence option
         extraAttributes : Attributes option
     }
-type Result = 
+type TaxonomyIncomplete =
     {
-        results : array<Prot>
+        scientificName : string
+        taxonId : int
     }
-type ProtIncomplete =
+type Lineage =
     {
-        //primaryAccession : string
+        scientificName : string option
+        commonName : string option
+        taxonId : int option
+        rank : string option
+        hidden : bool option
+    }
+type Taxonomy =
+    {
+        scientificName : string
+        commonName : string option
+        taxonId : int
+        mnemonic : string option
+        parent : TaxonomyIncomplete option
+        rank : string option
+        hidden : bool option
+        active : bool option
+        otherNames : array<string> option
+        lineage : array<Lineage> option
+        links : array<string> option
+    }
+type ProteinResult = 
+    {
+        results : array<Protein>
+    }
+type TaxonomyResult = 
+    {
+        results : array<Taxonomy>
+    }
+
+type UniProtKBIncomplete =
+    {
         uniProtkbId : string
         proteinDescription : Description
     }
@@ -183,8 +214,13 @@ type Suggestion =
         query : string option
         hits : obj option
     }
-type IncompleteResult =
+
+type UniProtKBIncompleteResult =
     {
-        results : array<ProtIncomplete>
+        results : array<UniProtKBIncomplete>
         suggestions: array<Suggestion> option
+    }
+type TaxonomyIncompleteResult = 
+    {
+        results: array<TaxonomyIncomplete>
     }
