@@ -20,6 +20,7 @@ module UniProtClient =
         member x.keyword = keyword
         [<DefaultValue>] val mutable entity : Entity
         [<DefaultValue>] val mutable organism : string
+        [<DefaultValue>] val mutable taxonId : string
         [<DefaultValue>] val mutable cursor : string
         member this.Clone() = this.MemberwiseClone() :?> Params
 
@@ -109,6 +110,9 @@ module UniProtClient =
         | value -> parts <- "&cursor=" + value :: parts
         parts <- "&query=" :: parts
         parts <- param.keyword :: parts
+        match param.taxonId with 
+        | null -> ()
+        | value ->  parts <- LEFT_PARENTHESIS + "taxonomy_id" + COLON + value + RIGHT_PARENTHESIS :: parts
         match param.organism with 
         | null -> ()
         | value ->  parts <- "+AND+" + LEFT_PARENTHESIS + "organism_name" + COLON + value + RIGHT_PARENTHESIS :: parts

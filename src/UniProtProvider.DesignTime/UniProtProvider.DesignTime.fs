@@ -114,14 +114,14 @@ type ByKeyWord (config : TypeProviderConfig) as this =
 
         if result.results.Length = 0 then
             if result.suggestions.IsSome && result.suggestions.Value.Length <> 0 then
-                addSuggestions result.suggestions.Value prot
+                prot.AddMembersDelayed(getSuggestions result.suggestions.Value prot)
         else
             prot.AddMembersDelayed(getProteinProperties result.results)
-            prot.AddMemberDelayed(addByOrganism param prot)
+            prot.AddMemberDelayed(getByOrganism param prot)
             let cursor = getCursor param |> Async.RunSynchronously
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-                prot.AddMemberDelayed(addNext nextParam prot)
+                prot.AddMemberDelayed(getNext nextParam prot)
 
         retrieveByKeyWord.AddMember prot
         prot
@@ -155,11 +155,11 @@ type ByOrganism (config : TypeProviderConfig) as this =
         let param = Params(organismName)
         let result = getOrganismsByKeyWord param
 
-        taxon.AddMembersDelayed(getOrganismProperties result.results)
+        taxon.AddMembersDelayed(getOrganismResults result.results taxon)
         let cursor = getCursor param |> Async.RunSynchronously
         if cursor.IsSome then
             let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-            taxon.AddMemberDelayed(addNext nextParam taxon)
+            taxon.AddMemberDelayed(getNext nextParam taxon)
 
         retrieveByOrganism.AddMember taxon
         taxon

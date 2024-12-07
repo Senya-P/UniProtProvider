@@ -3,7 +3,7 @@ open UniProtProvider
 open NUnit.Framework
 
 type Assert() =
-    static member AreEqual(a, b) = if a <> b then failwith "oops"
+    static member AreEqual(a, b) = if a <> b then failwith "Objects are not equal"
 
 [<Test>]
 let ``ById and ByKeyWord return the same`` () =
@@ -51,9 +51,14 @@ let ``Results can be found with show more`` () =
     let keratin2 = UniProtProvider.ByKeyWord<"inulin">().``More...``.``Regenerating islet-derived protein 3-gamma (REG3G_HUMAN)``.primaryAccession
     Assert.AreEqual(keratin1, keratin2)
 
-
 [<Test>]
 let ``Search by organism and by taxon id return the same`` () =
-    let human1 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.scientificName
+    let human1 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.``Homo sapiens (9606)``.scientificName
     let human2 = UniProtProvider.ByTaxonId<9606>().``Homo sapiens (9606)``.scientificName
     Assert.AreEqual(human1, human2)
+
+[<Test>]
+let ``Proteins related to the organism are listed`` () =
+    let protein1 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.FindRelated().``Clarin-2 (CLRN2_HUMAN)``.primaryAccession
+    let protein2 = UniProtProvider.ByKeyWord<"Clarin-2">().ByOrganism<"human">().``Clarin-2 (CLRN2_HUMAN)``.primaryAccession
+    Assert.AreEqual(protein1, protein2)
