@@ -6,8 +6,10 @@ open System.Net.Http.Headers
 open Types
 
 module UniProtClient = 
+    open System.IO.Compression
+    open System.IO
 
-    let private resultSize = 5
+    let private resultSize = 50
 
     type EntityType =
     | ProteinType of UniProtKBIncomplete
@@ -34,11 +36,11 @@ module UniProtClient =
         else None
 
 
-    let private request (url: string) = async {
+    let private request (url: string) =  
         use client = new HttpClient()
-        let! result = client.GetStringAsync(url) |> Async.AwaitTask
-        return result
-    }
+        let response = client.GetAsync(url)
+        response.Result.Content.ReadAsStreamAsync() |> Async.AwaitTask
+
 
 
     let getProteinById (id: string) =
@@ -46,7 +48,9 @@ module UniProtClient =
         let url = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let jsonTask = request url
-        let json = Async.RunSynchronously jsonTask
+        let jsonStream = Async.RunSynchronously jsonTask
+        let reader = new StreamReader(jsonStream)
+        let json = reader.ReadToEnd()
         let prot = Json.deserializeEx<ProteinResult> config json
         prot.results[0]
 
@@ -55,7 +59,9 @@ module UniProtClient =
         let url = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
         let jsonTask = request url
-        let json = Async.RunSynchronously jsonTask
+        let jsonStream = Async.RunSynchronously jsonTask
+        let reader = new StreamReader(jsonStream)
+        let json = reader.ReadToEnd()
         let prot = Json.deserializeEx<TaxonomyResult> config json
         prot.results[0]
 
@@ -77,14 +83,22 @@ module UniProtClient =
 
         System.IO.Path.Combine(path, hashedValue)
 
-    let private cacheResult (path: string, contents: string) =
-        System.IO.File.WriteAllText(path, contents)
+    let private cacheResult (path: string, contents: Stream) =
+        //System.IO.File.WriteAllText(path, contents)
+        use fileStream = new FileStream(path, FileMode.Create, FileAccess.Write)
+        contents.CopyToAsync(fileStream) |> Async.AwaitTask
+        //reduce json result + compressed//
 
 
     let private getCachedResult (path: string) =
     // check timestemps?
-        if System.IO.File.Exists(path) then
-            System.IO.File.ReadAllText path
+        if File.Exists(path) then
+            //System.IO.File.ReadAllText path
+            use compressedFileStream = File.Open(path, FileMode.Open, FileAccess.Read)
+            use decompressor = new GZipStream(compressedFileStream, CompressionMode.Decompress)
+            use result =  new StreamReader(decompressor)
+            let decompressed = result.ReadToEnd()
+            decompressed
         else ""
 
     let private LEFT_PARENTHESIS = "%28"
@@ -99,7 +113,7 @@ module UniProtClient =
         | Entity.Protein -> parts <- "uniprotkb" :: parts
         | Entity.Taxonomy -> parts <- "taxonomy" :: parts
         | _ -> ()
-        parts <- "/search?format=json&size=" :: parts
+        parts <- "/search?compressed=true&format=json&size=" :: parts
         parts <- string(resultSize) :: parts
         match param.entity with
         | Entity.Protein -> parts <- "&fields=id,protein_name" :: parts
@@ -127,9 +141,9 @@ module UniProtClient =
         let json =
             if result = "" then
                 let jsonTask = request url
-                let json = Async.RunSynchronously jsonTask
-                cacheResult (path, json)
-                json
+                use json = Async.RunSynchronously jsonTask
+                Async.RunSynchronously (cacheResult(path, json))
+                getCachedResult path
             else
                 result
         getDeserializedResult deserializeFunc json
@@ -141,10 +155,10 @@ module UniProtClient =
     let getOrganismsByKeyWord (param: Params) =
         param.entity <- Entity.Taxonomy
         getResultsByKeyWord param (Json.deserializeEx<TaxonomyIncompleteResult> config)
-    let getCursor (param: Params) = async {
+    let getCursor (param: Params) = 
         use client = new HttpClient()
         let url = buildUrl param 
-        let! response = client.GetAsync(url) |> Async.AwaitTask
-        return parseLinkHeader response.Headers
-    }
+        let response = client.GetAsync(url)
+        parseLinkHeader response.Result.Headers
+
 

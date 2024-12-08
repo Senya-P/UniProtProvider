@@ -43,7 +43,7 @@ module internal InnerTypes =
             t.AddMembersDelayed(getProteinProperties result.results)
             t.AddMemberDelayed(getByOrganism param t)
 
-            let cursor = getCursor param |> Async.RunSynchronously
+            let cursor = getCursor param
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 t.AddMemberDelayed(getNext nextParam t)
@@ -74,7 +74,7 @@ module internal InnerTypes =
 
         outerType.AddMember next
 
-        let cursor = getCursor param |> Async.RunSynchronously
+        let cursor = getCursor param
         if cursor.IsSome then
             let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
             next.AddMemberDelayed(getNext nextParam next)
@@ -91,7 +91,7 @@ module internal InnerTypes =
         t.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         t.AddMembersDelayed(getProteinProperties result.results)
 
-        let cursor = getCursor param |> Async.RunSynchronously
+        let cursor = getCursor param
         if cursor.IsSome then
             let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
             t.AddMemberDelayed(getNext nextParam t)
@@ -150,7 +150,7 @@ module internal InnerTypes =
             let param = Params(keyword)
             suggested.AddMemberDelayed(getByOrganism param suggested)
 
-            let cursor = getCursor param |> Async.RunSynchronously
+            let cursor = getCursor param
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 suggested.AddMemberDelayed(getNext nextParam suggested)
