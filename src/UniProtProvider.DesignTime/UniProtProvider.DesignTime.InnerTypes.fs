@@ -32,30 +32,7 @@ module internal InnerTypes =
                 p
         ]
 
-    let rec getByOrganism (param : Params) (outerType: ProvidedTypeDefinition) () = 
-        let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
-        byOrganism.DefineStaticParameters([ProvidedStaticParameter("Name", typeof<string>)], fun methName args ->
-            let name = args.[0] :?> string
-            param.organism <- name
-
-            let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>, true)
-            let result = getProteinsByKeyWord param
-            t.AddMembersDelayed(getProteinProperties result.results)
-            t.AddMemberDelayed(getByOrganism param t)
-
-            let cursor = getCursor param
-            if cursor.IsSome then
-                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-                t.AddMemberDelayed(getNext nextParam t)
-            outerType.AddMember(t)
-
-            let m = ProvidedMethod(methName, [], t, invokeCode = fun _ -> <@@ obj() @@>)
-            outerType.AddMember(m)
-            m
-        )
-        byOrganism
-
-    and getNext (param: Params) (outerType: ProvidedTypeDefinition) () =
+    let rec getNext (param: Params) (outerType: ProvidedTypeDefinition) () =
         let next = 
             ProvidedTypeDefinition("InnerType" + string(nextNumber()),
             Some typeof<obj>,
@@ -65,25 +42,47 @@ module internal InnerTypes =
         match param.entity with
         | Entity.Protein -> 
             let result = getProteinsByKeyWord param
-            next.AddMembersDelayed(getProteinProperties result.results)
-            next.AddMemberDelayed (getByOrganism param next)
+            next.AddMembersDelayed (getProteinProperties result.results)
         | Entity.Taxonomy ->
             let result = getOrganismsByKeyWord param
             next.AddMembersDelayed (getOrganismProperties result.results)
-        | _ -> ()
+        | _ -> 
+            failwith "Unknown entity"
 
         outerType.AddMember next
 
         let cursor = getCursor param
-        if cursor.IsSome then
-            let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-            next.AddMemberDelayed(getNext nextParam next)
+        if cursor <> "" then
+            let nextParam = param.Clone() in nextParam.cursor <- cursor
+            next.AddMemberDelayed (getNext nextParam next)
 
         let p =
             ProvidedProperty(propertyName="More...",
             propertyType = next,
             getterCode = (fun _ -> <@@ obj() @@>))
         p
+
+    let rec getByOrganism (param : Params) (outerType: ProvidedTypeDefinition) () = 
+        let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
+        byOrganism.DefineStaticParameters([ProvidedStaticParameter("Name", typeof<string>)], fun methName args ->
+            let name = args.[0] :?> string
+            param.organism <- name
+
+            let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>, true)
+            let result = getProteinsByKeyWord param
+            t.AddMembersDelayed(getProteinProperties result.results)
+
+            let cursor = getCursor param
+            if cursor <> "" then
+                let nextParam = param.Clone() in nextParam.cursor <- cursor
+                t.AddMemberDelayed(getNext nextParam t)
+            outerType.AddMember(t)
+
+            let m = ProvidedMethod(methName, [], t, invokeCode = fun _ -> <@@ obj() @@>)
+            outerType.AddMember(m)
+            m
+        )
+        byOrganism
 
     let getFindRelated (param : Params) (outerType: ProvidedTypeDefinition) =
         let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>)
@@ -92,8 +91,8 @@ module internal InnerTypes =
         t.AddMembersDelayed(getProteinProperties result.results)
 
         let cursor = getCursor param
-        if cursor.IsSome then
-            let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+        if cursor <> "" then
+            let nextParam = param.Clone() in nextParam.cursor <- cursor
             t.AddMemberDelayed(getNext nextParam t)
         outerType.AddMember(t)
 
@@ -151,8 +150,8 @@ module internal InnerTypes =
             suggested.AddMemberDelayed(getByOrganism param suggested)
 
             let cursor = getCursor param
-            if cursor.IsSome then
-                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+            if cursor <> "" then
+                let nextParam = param.Clone() in nextParam.cursor <- cursor
                 suggested.AddMemberDelayed(getNext nextParam suggested)
 
             outerType.AddMember suggested

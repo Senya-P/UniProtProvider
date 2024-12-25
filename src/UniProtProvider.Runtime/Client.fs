@@ -31,24 +31,22 @@ module UniProtClient =
             let linkHeader = headers.GetValues("Link") |> Seq.head
             let regex = System.Text.RegularExpressions.Regex("cursor=([^&]+)")
             let matchResult = regex.Match(linkHeader)
-            if matchResult.Success then Some(matchResult.Groups.[1].Value)
-            else None
-        else None
-
-
+            if matchResult.Success then 
+                let cursor = matchResult.Groups.[1].Value
+                cursor
+            else 
+                ""
+        else 
+            ""
     let private request (url: string) =  
         use client = new HttpClient()
         let response = client.GetAsync(url)
-        response.Result.Content.ReadAsStreamAsync() |> Async.AwaitTask
-
-
-
+        response.Result.Content.ReadAsStreamAsync().Result
     let getProteinById (id: string) =
         let parts = [| "https://rest.uniprot.org/uniprotkb/search?query="; id; "&format=json" |]
         let url = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
-        let jsonTask = request url
-        let jsonStream = Async.RunSynchronously jsonTask
+        let jsonStream = request url
         let reader = new StreamReader(jsonStream)
         let json = reader.ReadToEnd()
         let prot = Json.deserializeEx<ProteinResult> config json
@@ -58,8 +56,7 @@ module UniProtClient =
         let parts = [| "https://rest.uniprot.org/taxonomy/search?query="; string(id); "&format=json" |]
         let url = System.String.Concat(parts)
         let config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
-        let jsonTask = request url
-        let jsonStream = Async.RunSynchronously jsonTask
+        let jsonStream = request url
         let reader = new StreamReader(jsonStream)
         let json = reader.ReadToEnd()
         let prot = Json.deserializeEx<TaxonomyResult> config json
@@ -84,16 +81,13 @@ module UniProtClient =
         System.IO.Path.Combine(path, hashedValue)
 
     let private cacheResult (path: string, contents: Stream) =
-        //System.IO.File.WriteAllText(path, contents)
         use fileStream = new FileStream(path, FileMode.Create, FileAccess.Write)
-        contents.CopyToAsync(fileStream) |> Async.AwaitTask
-        //reduce json result + compressed//
+        contents.CopyToAsync(fileStream).Wait()
 
 
     let private getCachedResult (path: string) =
-    // check timestemps?
+    // check timestemps and delete old?
         if File.Exists(path) then
-            //System.IO.File.ReadAllText path
             use compressedFileStream = File.Open(path, FileMode.Open, FileAccess.Read)
             use decompressor = new GZipStream(compressedFileStream, CompressionMode.Decompress)
             use result =  new StreamReader(decompressor)
@@ -130,19 +124,21 @@ module UniProtClient =
         match param.organism with 
         | null -> ()
         | value ->  parts <- "+AND+" + LEFT_PARENTHESIS + "organism_name" + COLON + value + RIGHT_PARENTHESIS :: parts
-        System.String.Concat(parts |> List.rev |> List.toArray)
+        parts <- "+AND+" + LEFT_PARENTHESIS + "reviewed" + COLON + "true" + RIGHT_PARENTHESIS :: parts
+        let result = System.String.Concat(parts |> List.rev |> List.toArray)
+        result
 
     let private getDeserializedResult<'T> (deserializeFunc: string -> 'T) (json: string) : 'T =
         deserializeFunc json
-    let private getResultsByKeyWord (param: Params) (deserializeFunc: string -> 'T) : 'T =
-        let url = buildUrl (param)
+
+    let private getResults (param: Params) (deserializeFunc: string -> 'T) : 'T =
+        let url = buildUrl param
         let path = getPath url
         let result = getCachedResult path
         let json =
             if result = "" then
-                let jsonTask = request url
-                use json = Async.RunSynchronously jsonTask
-                Async.RunSynchronously (cacheResult(path, json))
+                use json = request url
+                cacheResult(path, json)
                 getCachedResult path
             else
                 result
@@ -150,15 +146,17 @@ module UniProtClient =
 
     let getProteinsByKeyWord (param: Params) =
         param.entity <- Entity.Protein
-        getResultsByKeyWord param (Json.deserializeEx<UniProtKBIncompleteResult> config)
+        getResults param (Json.deserializeEx<UniProtKBIncompleteResult> config)
 
     let getOrganismsByKeyWord (param: Params) =
         param.entity <- Entity.Taxonomy
-        getResultsByKeyWord param (Json.deserializeEx<TaxonomyIncompleteResult> config)
+        getResults param (Json.deserializeEx<TaxonomyIncompleteResult> config)
+
     let getCursor (param: Params) = 
         use client = new HttpClient()
         let url = buildUrl param 
-        let response = client.GetAsync(url)
-        parseLinkHeader response.Result.Headers
+        let response = client.GetAsync(url).Result
+        let cursor = parseLinkHeader response.Headers
+        cursor
 
 
