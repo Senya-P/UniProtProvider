@@ -1,4 +1,7 @@
 namespace Types
+// --------------------------------------------------------------------------------------
+// Types used to back the UniProKB data schema
+// --------------------------------------------------------------------------------------
 
 type DataSource(filename:string) = 
     member this.FileName = filename

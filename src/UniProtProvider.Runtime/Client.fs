@@ -4,11 +4,13 @@ open FSharp.Json
 open System.Net.Http
 open System.Net.Http.Headers
 open Types
+open System.IO.Compression
+open System.IO
 
+// --------------------------------------------------------------------------------------
+// Handles the communication with the UniProt API and caching of the results
+// --------------------------------------------------------------------------------------
 module UniProtClient = 
-    open System.IO.Compression
-    open System.IO
-
     let private resultSize = 50
 
     type EntityType =
@@ -18,6 +20,7 @@ module UniProtClient =
     | Taxonomy = 0
     | Protein = 1
 
+    /// Represents parameters for the query
     type Params(keyword : string) =
         member x.keyword = keyword
         [<DefaultValue>] val mutable entity : Entity
@@ -26,6 +29,7 @@ module UniProtClient =
         [<DefaultValue>] val mutable cursor : string
         member this.Clone() = this.MemberwiseClone() :?> Params
 
+    /// Parses the Link header from the HTTP response to extract the cursor value
     let private parseLinkHeader (headers: HttpResponseHeaders) =
         if headers.Contains("Link") then
             let linkHeader = headers.GetValues("Link") |> Seq.head
@@ -38,6 +42,8 @@ module UniProtClient =
                 ""
         else 
             ""
+
+    /// Sends a GET request to the specified URL
     let private request (url: string) =  
         use client = new HttpClient()
         let response = client.GetAsync(url)
@@ -67,6 +73,7 @@ module UniProtClient =
         let hash = cityHash.ComputeHash(System.Text.Encoding.ASCII.GetBytes(url))
         hash.AsHexString()
 
+    /// Constructs the file path for caching based on the hashed URL
     let private getPath (url: string) =
         let hashedValue = getHashedValue url
 
@@ -100,6 +107,7 @@ module UniProtClient =
     let private COLON = "%3A"
     let private config = JsonConfig.create(allowUntyped = true, deserializeOption = DeserializeOption.AllowOmit)
 
+    /// Builds the URL for the query based on the dataset type and parameters
     let private buildUrl (param: Params) =
         let mutable parts : string list = []
         parts <- "https://rest.uniprot.org/" :: parts
@@ -154,6 +162,7 @@ module UniProtClient =
         param.entity <- Entity.Taxonomy
         getResults param (Json.deserializeEx<TaxonomyIncompleteResult> config)
 
+    /// Retrieves the cursor for the next set of results
     let getCursor (param: Params) = 
         use client = new HttpClient()
         let url = buildUrl param 

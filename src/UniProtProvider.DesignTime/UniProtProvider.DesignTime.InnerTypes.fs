@@ -4,9 +4,13 @@ open UniProtProvider.RunTime
 open Client.UniProtClient
 open Types
 
+// --------------------------------------------------------------------------------------
+// Nested types used for type provider generation
+// --------------------------------------------------------------------------------------
 module internal InnerTypes =
-    let mutable count = 0
-    let nextNumber() = count <- count + 1; count // serves to generate unique type names
+    let mutable private count = 0
+    /// serves to generate unique type names
+    let private nextNumber() = count <- count + 1; count 
 
     let getProteinProperties (props : array<UniProtKBIncomplete>) () =
         [
@@ -31,7 +35,7 @@ module internal InnerTypes =
                     getterCode = (fun _ -> <@@ getOrganismById value @@>))
                 p
         ]
-
+    /// Recursively generates the next set of results
     let rec getNext (param: Params) (outerType: ProvidedTypeDefinition) () =
         let next = 
             ProvidedTypeDefinition("InnerType" + string(nextNumber()),
@@ -61,7 +65,7 @@ module internal InnerTypes =
             propertyType = next,
             getterCode = (fun _ -> <@@ obj() @@>))
         p
-
+    /// Generates a method to retrieve proteins by organism name
     let rec getByOrganism (param : Params) (outerType: ProvidedTypeDefinition) () = 
         let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
         byOrganism.DefineStaticParameters([ProvidedStaticParameter("Name", typeof<string>)], fun methName args ->
@@ -83,7 +87,7 @@ module internal InnerTypes =
             m
         )
         byOrganism
-
+    /// Generates a method to find proteins related to the taxonomy entry
     let getFindRelated (param : Params) (outerType: ProvidedTypeDefinition) () =
         let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>)
         let result = getProteinsByKeyWord param
