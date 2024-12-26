@@ -82,7 +82,7 @@ module UniProtClient =
 
     let private cacheResult (path: string, contents: Stream) =
         use fileStream = new FileStream(path, FileMode.Create, FileAccess.Write)
-        contents.CopyToAsync(fileStream).Wait()
+        contents.CopyToAsync(fileStream)
 
 
     let private getCachedResult (path: string) =
@@ -91,7 +91,7 @@ module UniProtClient =
             use compressedFileStream = File.Open(path, FileMode.Open, FileAccess.Read)
             use decompressor = new GZipStream(compressedFileStream, CompressionMode.Decompress)
             use result =  new StreamReader(decompressor)
-            let decompressed = result.ReadToEnd()
+            let decompressed = result.ReadToEndAsync().Result
             decompressed
         else ""
 
@@ -124,7 +124,9 @@ module UniProtClient =
         match param.organism with 
         | null -> ()
         | value ->  parts <- "+AND+" + LEFT_PARENTHESIS + "organism_name" + COLON + value + RIGHT_PARENTHESIS :: parts
-        parts <- "+AND+" + LEFT_PARENTHESIS + "reviewed" + COLON + "true" + RIGHT_PARENTHESIS :: parts
+        match param.entity with
+        | Entity.Protein -> parts <- "+AND+" + LEFT_PARENTHESIS + "reviewed" + COLON + "true" + RIGHT_PARENTHESIS :: parts
+        | _ -> ()
         let result = System.String.Concat(parts |> List.rev |> List.toArray)
         result
 
@@ -138,7 +140,7 @@ module UniProtClient =
         let json =
             if result = "" then
                 use json = request url
-                cacheResult(path, json)
+                cacheResult(path, json) |> ignore
                 getCachedResult path
             else
                 result

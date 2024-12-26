@@ -84,7 +84,7 @@ module internal InnerTypes =
         )
         byOrganism
 
-    let getFindRelated (param : Params) (outerType: ProvidedTypeDefinition) =
+    let getFindRelated (param : Params) (outerType: ProvidedTypeDefinition) () =
         let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>)
         let result = getProteinsByKeyWord param
         t.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
@@ -118,11 +118,11 @@ module internal InnerTypes =
                     ProvidedProperty(propertyName=name,
                     propertyType = typeof<Taxonomy>,
                     getterCode = (fun _ -> <@@ getOrganismById value @@>))
-                organismResult.AddMember p
+                organismResult.AddMemberDelayed (fun _-> p)
 
                 let param = Params("")
                 param.taxonId <- string(i.taxonId)
-                organismResult.AddMember(getFindRelated param outerType)
+                organismResult.AddMemberDelayed(getFindRelated param outerType)
 
                 let result = 
                     ProvidedProperty(propertyName=name,
@@ -135,8 +135,9 @@ module internal InnerTypes =
     let getSuggestions (sug : array<Suggestion>) (outerType: ProvidedTypeDefinition) () =
         [
         for i in sug do
-            let keyword = i.query.Value
-            let param = Params(keyword)
+            let keyword = i.query.Value.Split [|' '|]
+            let name = keyword[0]
+            let param = Params(name)
             let result = getProteinsByKeyWord param
             let suggested = 
                 ProvidedTypeDefinition("InnerType" + string(nextNumber()),
@@ -145,8 +146,6 @@ module internal InnerTypes =
 
             suggested.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
             suggested.AddMembersDelayed(getProteinProperties result.results)
-
-            let param = Params(keyword)
             suggested.AddMemberDelayed(getByOrganism param suggested)
 
             let cursor = getCursor param
@@ -156,7 +155,7 @@ module internal InnerTypes =
 
             outerType.AddMember suggested
             let p =
-                ProvidedProperty(propertyName = keyword,
+                ProvidedProperty(propertyName = name,
                 propertyType = suggested,
                 getterCode = (fun _ -> <@@ obj() @@>))
             p
