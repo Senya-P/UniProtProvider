@@ -3,12 +3,21 @@ namespace Types
 type DataSource(filename:string) = 
     member this.FileName = filename
 
+type Evidence = 
+    {
+        evidenceCode : string option
+        source : string option
+        id : string option
+    }
+
 type Organism = 
     {
         scientificName : string option
         commonName : string option
         taxonId : int option
-        lineage : array<string> option
+        lineages : array<string> option
+        synonyms : array<string> option
+        evidences : array<Evidence> option
     }
 type Audit = 
     {
@@ -29,15 +38,8 @@ type Location =
     {
         start : Point option
         ``end`` : Point option
+        sequence : string option
     }
-
-type Evidence = 
-    {
-        evidenceCode : string option
-        source : string option
-        id : string option
-    }
-    // may be split with and without evidences
 type Fullname = 
     {
         value : string
@@ -48,20 +50,46 @@ type Name =
         fullName : Fullname
         ecNumbers : array<Fullname> option
         shortNames : array<Fullname> option
+        valid : bool option
     }
 
-type Gen = 
+type Gene = 
     {
         geneName : Fullname option
         orfNames : array<Fullname> option
+        synonyms : array<Fullname> option
+        orderedLocusNames : array<Fullname> option
+    }
+type GeneLocation = 
+    {
+        geneEncodingType : string option
+        value : string option
+        evidences : array<Evidence> option
     }
 type Description = 
     {
         recommendedName : Name option
         cdAntigenNames : array<Fullname> option
+        innNames : array<Fullname> option
         alternativeNames : array<Name> option
+        submissionNames : array<Name> option
         contains : array<Description> option
+        includes : array<Description> option
         flag : string option
+        allergenName : Fullname option
+        biotechName : Fullname option
+    }
+type Ligand = 
+    {
+        id : string option
+        name : string option
+        note : string option
+        label : string option
+    }
+type AlternativeSequence = 
+    {
+        originalSequence : string option
+        alternativeSequences : array<string> option
     }
 type Feature = 
     {
@@ -70,12 +98,16 @@ type Feature =
         description : string option
         featureId : string option
         evidences : array<Evidence> option
+        ligand : Ligand option
+        ligandPart : Ligand option
+        alternativeSequence : AlternativeSequence option
     }
 type Keyword = 
     {
         id : string option
         category : string option
         name : string option
+        evidences : array<Evidence> option
     }
 
 type Property = 
@@ -88,19 +120,28 @@ type CrossReference =
         database : string option
         id : string option
         properties : array<Property> option
+        isoformId : string option
+        evidences : array<Evidence> option
     }
 type Citation = 
     {
         id : string option
         citationType : string option
         authors : array<string> option
+        bookName : string option
+        address : string option
         citationCrossReferences : array<CrossReference> option
         title : string option
         publicationDate : string option
+        publisher : string option
+        pubmedId : int option
         journal : string option
+        locator : string option
+        literatureAbstract : string option
         firstPage : string option
         lastPage : string option
         volume : string option
+        institute : string option
     }
 type ReferenceComment =
     {
@@ -113,6 +154,7 @@ type Reference =
         citation : Citation option
         referencePositions : array<string> option
         referenceComments : array<ReferenceComment> option
+        evidences : array<Evidence> option
     }
 type Sequence = 
     {
@@ -146,6 +188,16 @@ type Comment =
         commentType : string option
         events : array<string> option
         isoforms : array<Isoform> option
+        // incomplete
+    }
+type Lineage =
+    {
+        scientificName : string option
+        commonName : string option
+        taxonId : int option
+        rank : string option
+        hidden : bool option
+        synonyms : array<string> option
     }
 type Protein = 
     {
@@ -159,7 +211,8 @@ type Protein =
         organismHosts : array<Organism> option
         proteinExistence : string option
         proteinDescription : Description
-        genes : array<Gen> option
+        genes : array<Gene> option
+        geneLocation : GeneLocation option
         comments : array<Comment> option
         features : array<Feature> option
         keywords : array<Keyword> option
@@ -167,19 +220,14 @@ type Protein =
         uniProtKBCrossReferences : array<CrossReference> option
         sequence : Sequence option
         extraAttributes : Attributes option
+        active : bool option
+        fragment : bool option
+        lineages : array<Lineage> option
     }
 type TaxonomyIncomplete =
     {
         scientificName : string
         taxonId : int
-    }
-type Lineage =
-    {
-        scientificName : string option
-        commonName : string option
-        taxonId : int option
-        rank : string option
-        hidden : bool option
     }
 type Taxonomy =
     {
