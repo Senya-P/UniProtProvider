@@ -15,10 +15,20 @@ module internal InnerTypes =
     let getProteinProperties (props : array<UniProtKBIncomplete>) () =
         [
             for i in props do
-                let name = System.String.Concat(i.proteinDescription.recommendedName.Value.fullName.value, " (", i.uniProtkbId, ")")
+                // recommended name is not always present
+                let name = 
+                    if i.proteinDescription.recommendedName.IsSome then
+                        i.proteinDescription.recommendedName.Value.fullName.value
+                    else if i.proteinDescription.submissionNames.IsSome then
+                        i.proteinDescription.submissionNames.Value[0].fullName.value
+                    else if i.proteinDescription.alternativeNames.IsSome then
+                        i.proteinDescription.alternativeNames.Value[0].fullName.value
+                    else
+                        ""
+                let propertyName = System.String.Concat(name, " (", i.uniProtkbId, ")")
                 let value = i.uniProtkbId
                 let p =
-                    ProvidedProperty(propertyName = name,
+                    ProvidedProperty(propertyName = propertyName,
                     propertyType = typeof<Protein>,
                     getterCode = (fun _ -> <@@ getProteinById value @@>))
                 p

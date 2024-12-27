@@ -28,15 +28,24 @@ type ById (config : TypeProviderConfig) as this =
     do retrieveById.DefineStaticParameters( [parameter], fun typeName args -> 
         let id = (unbox<string> args.[0])
         let result = getProteinById id
-        let value = result.uniProtkbId
-        let name =  System.String.Concat(result.proteinDescription.recommendedName.Value.fullName.value, " (", result.uniProtkbId, ")")
+        let value = result.primaryAccession
+        let name = 
+            if result.proteinDescription.recommendedName.IsSome then
+                result.proteinDescription.recommendedName.Value.fullName.value
+            else if result.proteinDescription.submissionNames.IsSome then
+                result.proteinDescription.submissionNames.Value[0].fullName.value
+            else if result.proteinDescription.alternativeNames.IsSome then
+                result.proteinDescription.alternativeNames.Value[0].fullName.value
+            else
+                ""
+        let propertyName =  System.String.Concat(name, " (", result.uniProtkbId, ")")
         let prot = 
             ProvidedTypeDefinition(typeName, 
             Some typeof<obj>,
             hideObjectMethods=true)
         prot.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         let p =
-            ProvidedProperty(propertyName = name,
+            ProvidedProperty(propertyName = propertyName,
             propertyType = typeof<Protein>,
             getterCode = (fun _ -> <@@ getProteinById value @@>))
         prot.AddMember p
@@ -72,7 +81,7 @@ type ByTaxonId (config : TypeProviderConfig) as this =
         let id = (unbox<int> args.[0])
         let result = getOrganismById id
         let value = result.taxonId
-        let name =  System.String.Concat(result.scientificName, " (", result.taxonId, ")")
+        let name =  System.String.Concat(result.scientificName, " (", value, ")")
         let prot = 
             ProvidedTypeDefinition(typeName, 
             Some typeof<obj>,

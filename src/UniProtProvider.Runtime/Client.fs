@@ -132,9 +132,6 @@ module UniProtClient =
         match param.organism with 
         | null -> ()
         | value ->  parts <- "+AND+" + LEFT_PARENTHESIS + "organism_name" + COLON + value + RIGHT_PARENTHESIS :: parts
-        match param.entity with
-        | Entity.Protein -> parts <- "+AND+" + LEFT_PARENTHESIS + "reviewed" + COLON + "true" + RIGHT_PARENTHESIS :: parts
-        | _ -> ()
         let result = System.String.Concat(parts |> List.rev |> List.toArray)
         result
 

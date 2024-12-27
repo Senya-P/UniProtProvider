@@ -3,7 +3,8 @@ open UniProtProvider
 open NUnit.Framework
 
 type Assert() =
-    static member AreEqual(a, b) = if a <> b then failwith "Objects are not equal"
+    static member AreEqual(a, b) = if a <> b then failwith ("Objects " + a.ToString() + " and " + b.ToString() + " are not equal")
+    static member Print(a) = if a = a then failwith ("Object: " + a.ToString())
 
 [<Test>]
 let ``ById and ByKeyWord return the same`` () =
@@ -56,3 +57,8 @@ let ``Proteins related to the organism are listed`` () =
     let protein1 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.FindRelated().``Clarin-2 (CLRN2_HUMAN)``.primaryAccession
     let protein2 = UniProtProvider.ByKeyWord<"Clarin-2">().ByOrganism<"human">().``Clarin-2 (CLRN2_HUMAN)``.primaryAccession
     Assert.AreEqual(protein1, protein2)
+
+[<Test>]
+let ``Entry missing a primary name is accessible`` () =
+    let recommendedNameIsMissing = UniProtProvider.ById<"A0AVG3">().``t-SNARE domain containing 1 (A0AVG3_HUMAN)``.proteinDescription.recommendedName.IsSome
+    Assert.AreEqual(false, recommendedNameIsMissing)
