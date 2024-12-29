@@ -76,11 +76,7 @@ module UniProtClient =
     /// Constructs the file path for caching based on the hashed URL
     let private getPath (url: string) =
         let hashedValue = getHashedValue url
-
         let mutable currentDirectory = System.IO.DirectoryInfo(System.IO.Directory.GetCurrentDirectory())
-        while currentDirectory.Parent <> null && currentDirectory.Name <> "UniProtProvider" do
-            currentDirectory <- currentDirectory.Parent
-
         let path = System.IO.Path.Combine(currentDirectory.FullName, "tmp")
         if not (System.IO.Directory.Exists(path)) then
             System.IO.Directory.CreateDirectory(path) |> ignore
