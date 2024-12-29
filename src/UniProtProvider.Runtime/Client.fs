@@ -89,7 +89,7 @@ module UniProtClient =
 
     let private cacheResult (path: string, contents: Stream) =
         use fileStream = new FileStream(path, FileMode.Create, FileAccess.Write)
-        contents.CopyToAsync(fileStream)
+        contents.CopyTo(fileStream)
 
 
     let private getCachedResult (path: string) =
@@ -98,7 +98,7 @@ module UniProtClient =
             use compressedFileStream = File.Open(path, FileMode.Open, FileAccess.Read)
             use decompressor = new GZipStream(compressedFileStream, CompressionMode.Decompress)
             use result =  new StreamReader(decompressor)
-            let decompressed = result.ReadToEndAsync().Result
+            let decompressed = result.ReadToEnd()
             decompressed
         else ""
 
@@ -145,7 +145,7 @@ module UniProtClient =
         let json =
             if result = "" then
                 use json = request url
-                cacheResult(path, json) |> ignore
+                cacheResult(path, json)
                 getCachedResult path
             else
                 result
