@@ -4,7 +4,7 @@ open NUnit.Framework
 
 type Assert() =
     static member AreEqual(a, b) = if a <> b then failwith ("Objects " + a.ToString() + " and " + b.ToString() + " are not equal")
-    static member Print(a) = if a = a then failwith ("Object: " + a.ToString())
+    static member Print(a) = failwith ("Object: " + a.ToString())
 
 [<Test>]
 let ``ById and ByKeyWord return the same`` () =
@@ -21,6 +21,11 @@ let ``ById and ByKeyWord return the same`` () =
 [<Test>]
 let ``Non existing keyword returns empty result`` () =
     let q = UniProtProvider.ByKeyWord<"qqqqqq">() // does not fail with error
+    Assert.AreEqual(true, true)
+
+[<Test>]
+let ``Non existing organism name returns empty result`` () =
+    let q = UniProtProvider.ByOrganism<"aaaaaaaaaaaa">() // does not fail with error
     Assert.AreEqual(true, true)
 
 [<Test>]
@@ -61,4 +66,4 @@ let ``Proteins related to the organism are listed`` () =
 [<Test>]
 let ``Entry missing a primary name is accessible`` () =
     let recommendedNameIsMissing = UniProtProvider.ById<"A0AVG3">().``t-SNARE domain containing 1 (A0AVG3_HUMAN)``.proteinDescription.recommendedName.IsSome
-    Assert.AreEqual(false, recommendedNameIsMissing)
+    Assert.AreEqual(recommendedNameIsMissing, false)
