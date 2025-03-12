@@ -1,6 +1,7 @@
 namespace Types
 // --------------------------------------------------------------------------------------
 // Types used to back the UniProKB data schema
+// Retrieved from: https://www.uniprot.org/api-documentation/uniprotkb#schemas
 // --------------------------------------------------------------------------------------
 
 type DataSource(filename:string) = 
