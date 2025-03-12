@@ -47,9 +47,9 @@ let ``Show more is available`` () =
 
 [<Test>]
 let ``Results can be found with show more`` () =
-    let keratin1 = UniProtProvider.ByKeyWord<"inulin">().ByOrganism<"mouse">().``Ig kappa chain V-V region J606 (KV5AK_MOUSE)``.primaryAccession
-    let keratin2 = UniProtProvider.ByKeyWord<"inulin">().``More...``.``Ig kappa chain V-V region J606 (KV5AK_MOUSE)``.primaryAccession
-    Assert.AreEqual(keratin1, keratin2)
+    let inulin1 = UniProtProvider.ByKeyWord<"inulin">().ByOrganism<"mouse">().``Ig kappa chain V-V region J606 (KV5AK_MOUSE)``.primaryAccession
+    let inulin2 = UniProtProvider.ByKeyWord<"inulin">().``More...``.``Ig kappa chain V-V region J606 (KV5AK_MOUSE)``.primaryAccession
+    Assert.AreEqual(inulin1, inulin2)
 
 [<Test>]
 let ``Search by organism and by taxon id return the same`` () =
@@ -67,3 +67,15 @@ let ``Proteins related to the organism are listed`` () =
 let ``Entry missing a primary name is accessible`` () =
     let recommendedNameIsMissing = UniProtProvider.ById<"A0AVG3">().``t-SNARE domain containing 1 (A0AVG3_HUMAN)``.proteinDescription.recommendedName.IsSome
     Assert.AreEqual(recommendedNameIsMissing, false)
+
+[<Test>]
+let ``It is possible to iterate through array values`` () =
+    let humanProteins = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.FindRelated().``Clarin-2 (CLRN2_HUMAN)``.genes
+    for i in humanProteins.Value do 
+        Assert.AreEqual(true, true)
+
+[<Test>]
+let ``Equals compares values`` () =
+    let humanProtein1 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.``Homo sapiens (9606)``
+    let humanProtein2 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.``Homo sapiens (9606)``
+    Assert.AreEqual(humanProtein1.Equals(humanProtein2), true)
