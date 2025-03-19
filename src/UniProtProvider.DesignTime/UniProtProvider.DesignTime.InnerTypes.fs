@@ -25,7 +25,7 @@ module internal InnerTypes =
                         i.proteinDescription.alternativeNames.Value[0].fullName.value
                     else
                         ""
-                let propertyName = System.String.Concat(name, " (", i.uniProtkbId, ")")
+                let propertyName = name + " (" + i.uniProtkbId + ")"
                 let value = i.uniProtkbId
                 let p =
                     ProvidedProperty(propertyName = propertyName,
@@ -60,14 +60,12 @@ module internal InnerTypes =
         | Entity.Taxonomy ->
             let result = getOrganismsByKeyWord param
             next.AddMembersDelayed (getOrganismProperties result.results)
-        | _ -> 
-            failwith "Unknown entity"
 
         outerType.AddMember next
 
         let cursor = getCursor param
-        if cursor <> "" then
-            let nextParam = param.Clone() in nextParam.cursor <- cursor
+        if cursor.IsSome then
+            let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
             next.AddMemberDelayed (getNext nextParam next)
 
         let p =
@@ -87,8 +85,8 @@ module internal InnerTypes =
             t.AddMembersDelayed(getProteinProperties result.results)
 
             let cursor = getCursor param
-            if cursor <> "" then
-                let nextParam = param.Clone() in nextParam.cursor <- cursor
+            if cursor.IsSome then
+                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 t.AddMemberDelayed(getNext nextParam t)
             outerType.AddMember(t)
 
@@ -105,8 +103,8 @@ module internal InnerTypes =
         t.AddMembersDelayed(getProteinProperties result.results)
 
         let cursor = getCursor param
-        if cursor <> "" then
-            let nextParam = param.Clone() in nextParam.cursor <- cursor
+        if cursor.IsSome then
+            let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
             t.AddMemberDelayed(getNext nextParam t)
         outerType.AddMember(t)
 
@@ -163,8 +161,8 @@ module internal InnerTypes =
             suggested.AddMemberDelayed(getByOrganism param suggested)
 
             let cursor = getCursor param
-            if cursor <> "" then
-                let nextParam = param.Clone() in nextParam.cursor <- cursor
+            if cursor.IsSome then
+                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 suggested.AddMemberDelayed(getNext nextParam suggested)
 
             outerType.AddMember suggested

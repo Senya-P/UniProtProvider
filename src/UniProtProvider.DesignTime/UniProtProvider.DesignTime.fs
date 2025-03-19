@@ -137,8 +137,8 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             prot.AddMembersDelayed(getProteinProperties result.results)
             prot.AddMemberDelayed(getByOrganism param prot)
             let cursor = getCursor param
-            if cursor <> "" then
-                let nextParam = param.Clone() in nextParam.cursor <- cursor
+            if cursor.IsSome then
+                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 prot.AddMemberDelayed(getNext nextParam prot)
 
         retrieveByKeyWord.AddMember prot
@@ -179,8 +179,8 @@ type ByOrganism (config : TypeProviderConfig) as this =
 
         taxon.AddMembersDelayed(getOrganismResults result.results taxon)
         let cursor = getCursor param
-        if cursor <> "" then
-            let nextParam = param.Clone() in nextParam.cursor <- cursor
+        if cursor.IsSome then
+            let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
             taxon.AddMemberDelayed(getNext nextParam taxon)
 
         retrieveByOrganism.AddMember taxon
