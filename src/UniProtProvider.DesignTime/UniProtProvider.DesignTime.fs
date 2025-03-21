@@ -27,7 +27,7 @@ type ById (config : TypeProviderConfig) as this =
     let parameter = ProvidedStaticParameter("UniProtKBId", typeof<string>)
     do retrieveById.DefineStaticParameters( [parameter], fun typeName args -> 
         let id = (unbox<string> args.[0])
-        let result = getProteinById id
+        let result = getProteinById id |> Async.RunSynchronously
         let value = result.primaryAccession
         let name = 
             if result.proteinDescription.recommendedName.IsSome then
@@ -47,7 +47,7 @@ type ById (config : TypeProviderConfig) as this =
         let p =
             ProvidedProperty(propertyName = propertyName,
             propertyType = typeof<Protein>,
-            getterCode = (fun _ -> <@@ getProteinById value @@>))
+            getterCode = (fun _ -> <@@ getProteinById value |> Async.RunSynchronously @@>))
         prot.AddMember p
         retrieveById.AddMember prot
         prot
@@ -79,7 +79,7 @@ type ByTaxonId (config : TypeProviderConfig) as this =
     let parameter = ProvidedStaticParameter("TaxonId", typeof<int>)
     do retrieveById.DefineStaticParameters( [parameter], fun typeName args -> 
         let id = (unbox<int> args.[0])
-        let result = getOrganismById id
+        let result = getOrganismById id |> Async.RunSynchronously
         let value = result.taxonId
         let name =  System.String.Concat(result.scientificName, " (", value, ")")
         let prot = 
@@ -90,7 +90,7 @@ type ByTaxonId (config : TypeProviderConfig) as this =
         let p =
             ProvidedProperty(propertyName = name,
             propertyType = typeof<Taxonomy>,
-            getterCode = (fun _ -> <@@ getOrganismById value @@>))
+            getterCode = (fun _ -> <@@ getOrganismById value |> Async.RunSynchronously @@>))
         prot.AddMember p
         retrieveById.AddMember prot
         prot
@@ -127,7 +127,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
 
         let keyword = unbox<string> args.[0]
         let param = Params(keyword)
-        let result = getProteinsByKeyWord param
+        let result = getProteinsByKeyWord param |> Async.RunSynchronously
 
         if result.results.Length = 0 then
             // no matching entries found, generate suggested queries
@@ -175,7 +175,7 @@ type ByOrganism (config : TypeProviderConfig) as this =
 
         let organismName = unbox<string> args.[0]
         let param = Params(organismName)
-        let result = getOrganismsByKeyWord param
+        let result = getOrganismsByKeyWord param |> Async.RunSynchronously
 
         taxon.AddMembersDelayed(getOrganismResults result.results taxon)
         let cursor = getCursor param

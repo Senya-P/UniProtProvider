@@ -83,48 +83,52 @@ module UniProtClient =
             result
 
     /// Sends a GET request to the specified URL
-    let private request (url: string) =  
-        let response = client.GetAsync(url)
-        response.Result.Content.ReadAsStreamAsync().Result
+    let private request (url: string) =  async {
+        let! response =  Async.AwaitTask(client.GetAsync(url))
+        return! response.Content.ReadAsStreamAsync() |> Async.AwaitTask
+    }
 
-    let getProteinById (id: string) =
+    let getProteinById (id: string) = async {
         let url = "https://rest.uniprot.org/uniprotkb/search?query=" + id + "&format=json"
-        let jsonStream = request url
-        let reader = new StreamReader(jsonStream)
-        let json = reader.ReadToEnd()
+        let! responseStream = request url
+        use reader = new StreamReader(responseStream)
+        let! json = reader.ReadToEndAsync() |> Async.AwaitTask
         let prot = Json.deserializeEx<ProteinResult> config json
-        prot.results[0]
+        return prot.results[0]
+    }
 
-    let getOrganismById (id: int) =
+    let getOrganismById (id: int) = async {
         let url = "https://rest.uniprot.org/taxonomy/search?query=" + string(id) + "&format=json"
-        let jsonStream = request url
-        let reader = new StreamReader(jsonStream)
-        let json = reader.ReadToEnd()
+        let! responseStream = request url
+        use reader = new StreamReader(responseStream)
+        let! json = reader.ReadToEndAsync() |> Async.AwaitTask
         let prot = Json.deserializeEx<TaxonomyResult> config json
-        prot.results[0]
+        return prot.results[0]
+    }
 
-    let private getDeserializedResult<'T> (deserializeFunc: string -> 'T) (json: string) : 'T =
+    let private getDeserializedResult<'T> (deserializeFunc: string -> 'T) (json: string) =
         deserializeFunc json
 
-    let private getResults (param: Params) (deserializeFunc: string -> 'T) : 'T =
+    let private getResults<'T> (entity: Entity) (param: Params)  = async {
         let url =  Helpers.buildUrl param
-        let cachedJson = Cache.getCachedResult url
-        let json =
-            if cachedJson.IsNone then
-                use json = request url
-                Cache.cacheResult(url, json)
-                Cache.getCachedResult url
-            else
-                cachedJson
-        getDeserializedResult deserializeFunc json.Value
+        let! cachedJson = Cache.getCachedResult url
+
+        if cachedJson = "" then
+            let! json = request url
+            do! Cache.cacheResult(url, json)
+            let! result =  Cache.getCachedResult url
+            return Json.deserializeEx<'T> config result
+        else
+            return Json.deserializeEx<'T> config cachedJson
+    }
 
     let getProteinsByKeyWord (param: Params) =
         param.entity <- Entity.Protein
-        getResults param (Json.deserializeEx<UniProtKBIncompleteResult> config)
+        getResults<UniProtKBIncompleteResult> Protein param
 
     let getOrganismsByKeyWord (param: Params) =
         param.entity <- Entity.Taxonomy
-        getResults param (Json.deserializeEx<TaxonomyIncompleteResult> config)
+        getResults<TaxonomyIncompleteResult>  Taxonomy param 
 
     /// Retrieves the cursor for the next set of results
     let getCursor (param: Params) = 

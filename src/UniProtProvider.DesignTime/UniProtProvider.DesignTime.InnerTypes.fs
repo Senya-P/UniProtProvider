@@ -30,7 +30,7 @@ module internal InnerTypes =
                 let p =
                     ProvidedProperty(propertyName = propertyName,
                     propertyType = typeof<Protein>,
-                    getterCode = (fun _ -> <@@ getProteinById value @@>))
+                    getterCode = (fun _ -> <@@ getProteinById value |> Async.RunSynchronously @@>))
                 p
         ]
 
@@ -42,7 +42,7 @@ module internal InnerTypes =
                 let p =
                     ProvidedProperty(propertyName=name,
                     propertyType = typeof<Taxonomy>,
-                    getterCode = (fun _ -> <@@ getOrganismById value @@>))
+                    getterCode = (fun _ -> <@@ getOrganismById value |> Async.RunSynchronously @@>))
                 p
         ]
     /// Recursively generates the next set of results
@@ -55,10 +55,10 @@ module internal InnerTypes =
 
         match param.entity with
         | Entity.Protein -> 
-            let result = getProteinsByKeyWord param
+            let result = getProteinsByKeyWord param |> Async.RunSynchronously
             next.AddMembersDelayed (getProteinProperties result.results)
         | Entity.Taxonomy ->
-            let result = getOrganismsByKeyWord param
+            let result = getOrganismsByKeyWord param |> Async.RunSynchronously
             next.AddMembersDelayed (getOrganismProperties result.results)
 
         outerType.AddMember next
@@ -81,7 +81,7 @@ module internal InnerTypes =
             param.organism <- name
 
             let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>, true)
-            let result = getProteinsByKeyWord param
+            let result = getProteinsByKeyWord param |> Async.RunSynchronously
             t.AddMembersDelayed(getProteinProperties result.results)
 
             let cursor = getCursor param
@@ -98,7 +98,7 @@ module internal InnerTypes =
     /// Generates a method to find proteins related to the taxonomy entry
     let getFindRelated (param : Params) (outerType: ProvidedTypeDefinition) () =
         let t = ProvidedTypeDefinition("InnerType" + string(nextNumber()), Some typeof<obj>)
-        let result = getProteinsByKeyWord param
+        let result = getProteinsByKeyWord param |> Async.RunSynchronously
         t.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         t.AddMembersDelayed(getProteinProperties result.results)
 
@@ -129,7 +129,7 @@ module internal InnerTypes =
                 let p =
                     ProvidedProperty(propertyName=name,
                     propertyType = typeof<Taxonomy>,
-                    getterCode = (fun _ -> <@@ getOrganismById value @@>))
+                    getterCode = (fun _ -> <@@ getOrganismById value |> Async.RunSynchronously @@>))
                 organismResult.AddMemberDelayed (fun _-> p)
 
                 let param = Params("")
@@ -150,7 +150,7 @@ module internal InnerTypes =
             let keyword = i.query.Value.Split [|' '|]
             let name = keyword[0]
             let param = Params(name)
-            let result = getProteinsByKeyWord param
+            let result = getProteinsByKeyWord param |> Async.RunSynchronously
             let suggested = 
                 ProvidedTypeDefinition("InnerType" + string(nextNumber()),
                 Some typeof<obj>,

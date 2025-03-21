@@ -7,6 +7,7 @@ open System.IO.Compression
 // Helper class for caching mechanism implementation
 // --------------------------------------------------------------------------------------
 module Cache =
+    open System
 
     let private tmpDir = 
         let path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "tmp")
@@ -28,18 +29,28 @@ module Cache =
         let hashedValue = getHashedValue url
         System.IO.Path.Combine(tmpDir, hashedValue)
 
-    let cacheResult (url: string, contents: Stream) =
+    let cacheResult (url: string, contents: Stream) = async {
         let path = getPath url
-        use fileStream = new FileStream(path, FileMode.Create, FileAccess.Write)
-        contents.CopyTo(fileStream)
+        use fileStream = new FileStream(
+            path, 
+            FileMode.Create, 
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize = 4096,
+            useAsync = true
+        )
+        do! contents.CopyToAsync(fileStream) |> Async.AwaitTask
+        do! fileStream.FlushAsync() |> Async.AwaitTask
+    }
 
-    let getCachedResult (url: string) =
+    let getCachedResult (url: string) = async {
         let path = getPath url
         // check timestemps and delete old?
         if File.Exists path then
             use compressedFileStream = File.Open(path, FileMode.Open, FileAccess.Read)
             use decompressor = new GZipStream(compressedFileStream, CompressionMode.Decompress)
-            use result =  new StreamReader(decompressor)
-            let decompressed = result.ReadToEnd()
-            Some decompressed
-        else None
+            use reader =  new StreamReader(decompressor)
+            return! reader.ReadToEndAsync() |> Async.AwaitTask
+        else 
+            return ""
+    }
