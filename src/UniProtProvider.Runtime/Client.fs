@@ -106,9 +106,6 @@ module UniProtClient =
         return prot.results[0]
     }
 
-    let private getDeserializedResult<'T> (deserializeFunc: string -> 'T) (json: string) =
-        deserializeFunc json
-
     let private getResults<'T> (entity: Entity) (param: Params)  = async {
         let url =  Helpers.buildUrl param
         let! cachedJson = Cache.getCachedResult url
@@ -131,7 +128,8 @@ module UniProtClient =
         getResults<TaxonomyIncompleteResult>  Taxonomy param 
 
     /// Retrieves the cursor for the next set of results
-    let getCursor (param: Params) = 
+    let getCursor (param: Params) = async {
         let url = Helpers.buildUrl param 
-        let response = client.GetAsync(url).Result
-        Helpers.parseLinkHeader response.Headers
+        let! response = client.GetAsync(url) |> Async.AwaitTask
+        return Helpers.parseLinkHeader response.Headers
+    }

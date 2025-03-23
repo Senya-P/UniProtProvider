@@ -7,7 +7,6 @@ open System.IO.Compression
 // Helper class for caching mechanism implementation
 // --------------------------------------------------------------------------------------
 module Cache =
-    open System
 
     let private tmpDir = 
         let path = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "tmp")
@@ -45,7 +44,6 @@ module Cache =
 
     let getCachedResult (url: string) = async {
         let path = getPath url
-        // check timestemps and delete old?
         if File.Exists path then
             use compressedFileStream = File.Open(path, FileMode.Open, FileAccess.Read)
             use decompressor = new GZipStream(compressedFileStream, CompressionMode.Decompress)

@@ -63,7 +63,7 @@ module internal InnerTypes =
 
         outerType.AddMember next
 
-        let cursor = getCursor param
+        let cursor = getCursor param |> Async.RunSynchronously
         if cursor.IsSome then
             let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
             next.AddMemberDelayed (getNext nextParam next)
@@ -74,7 +74,7 @@ module internal InnerTypes =
             getterCode = (fun _ -> <@@ obj() @@>))
         p
     /// Generates a method to retrieve proteins by organism name
-    let rec getByOrganism (param : Params) (outerType: ProvidedTypeDefinition) () = 
+    let getByOrganism (param : Params) (outerType: ProvidedTypeDefinition) () = 
         let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
         byOrganism.DefineStaticParameters([ProvidedStaticParameter("Name", typeof<string>)], fun methName args ->
             let name = args.[0] :?> string
@@ -84,7 +84,7 @@ module internal InnerTypes =
             let result = getProteinsByKeyWord param |> Async.RunSynchronously
             t.AddMembersDelayed(getProteinProperties result.results)
 
-            let cursor = getCursor param
+            let cursor = getCursor param |> Async.RunSynchronously
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 t.AddMemberDelayed(getNext nextParam t)
@@ -102,7 +102,7 @@ module internal InnerTypes =
         t.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         t.AddMembersDelayed(getProteinProperties result.results)
 
-        let cursor = getCursor param
+        let cursor = getCursor param |> Async.RunSynchronously
         if cursor.IsSome then
             let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
             t.AddMemberDelayed(getNext nextParam t)
@@ -160,7 +160,7 @@ module internal InnerTypes =
             suggested.AddMembersDelayed(getProteinProperties result.results)
             suggested.AddMemberDelayed(getByOrganism param suggested)
 
-            let cursor = getCursor param
+            let cursor = getCursor param |> Async.RunSynchronously
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
                 suggested.AddMemberDelayed(getNext nextParam suggested)
