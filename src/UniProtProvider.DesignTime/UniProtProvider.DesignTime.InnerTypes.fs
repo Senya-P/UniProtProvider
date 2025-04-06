@@ -78,20 +78,21 @@ module internal InnerTypes =
             "InnerType" + string(nextNumber()),
             Some typeof<obj>
         )
-        param.reviewed <- true
+        let nextParam = param.Clone() in nextParam.reviewed <- true
 
-        let result: UniProtKBIncompleteResult = getProteinsByKeyWord param |> Async.RunSynchronously
+        let result: UniProtKBIncompleteResult = getProteinsByKeyWord nextParam |> Async.RunSynchronously
         t.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         t.AddMembersDelayed(getProteinProperties result.results)
-        t.AddMemberDelayed(getByProteinExistence param t)
 
-        if param.taxonId = null && param.organism = null then
-            t.AddMemberDelayed(getByOrganism param t)
+        if int nextParam.ProteinExistence = 0 then
+            t.AddMemberDelayed(getByProteinExistence nextParam t)
+        if nextParam.taxonId = null && nextParam.organism = null then
+            t.AddMemberDelayed(getByOrganism nextParam t)
 
-        let cursor = getCursor param |> Async.RunSynchronously
+        let cursor = getCursor nextParam |> Async.RunSynchronously
         if cursor.IsSome then
-            let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-            t.AddMemberDelayed(getNext nextParam t)
+            let nextNextParam = nextParam.Clone() in nextNextParam.cursor <- cursor.Value
+            t.AddMemberDelayed(getNext nextNextParam t)
         outerType.AddMember(t)
 
         ProvidedMethod(
@@ -107,20 +108,25 @@ module internal InnerTypes =
             [ProvidedStaticParameter("Existence", typeof<ProteinExistence>)], 
             fun methName args ->
             let existence = args.[0] :?> ProteinExistence
-            param.ProteinExistence <- existence
+
+            let nextParam = param.Clone() in nextParam.ProteinExistence <- existence
 
             let t = ProvidedTypeDefinition(
                 "InnerType" + string(nextNumber()),
                 Some typeof<obj>,
                 true)
-            let result = getProteinsByKeyWord param |> Async.RunSynchronously
+            let result = getProteinsByKeyWord nextParam |> Async.RunSynchronously
             t.AddMembersDelayed(getProteinProperties result.results)
-            t.AddMemberDelayed(getReviewed param outerType)
 
-            let cursor = getCursor param |> Async.RunSynchronously
+            if nextParam.reviewed = false then
+                t.AddMemberDelayed(getReviewed nextParam t)
+            if nextParam.taxonId = null && nextParam.organism = null then
+                t.AddMemberDelayed(getByOrganism nextParam t)
+
+            let cursor = getCursor nextParam |> Async.RunSynchronously
             if cursor.IsSome then
-                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-                t.AddMemberDelayed(getNext nextParam t)
+                let nextNextParam = nextParam.Clone() in nextNextParam.cursor <- cursor.Value
+                t.AddMemberDelayed(getNext nextNextParam t)
             outerType.AddMember(t)
 
             let m = ProvidedMethod(
@@ -142,21 +148,25 @@ module internal InnerTypes =
             [ProvidedStaticParameter("Name", typeof<string>)], 
             fun methName args ->
             let name = args.[0] :?> string
-            param.organism <- name
+
+            let nextParam = param.Clone() in nextParam.organism <- name
 
             let t = ProvidedTypeDefinition(
                 "InnerType" + string(nextNumber()),
                 Some typeof<obj>,
                 true)
-            let result = getProteinsByKeyWord param |> Async.RunSynchronously
+            let result = getProteinsByKeyWord nextParam |> Async.RunSynchronously
             t.AddMembersDelayed(getProteinProperties result.results)
-            t.AddMemberDelayed(getReviewed param t)
-            t.AddMemberDelayed(getByProteinExistence param t)
 
-            let cursor = getCursor param |> Async.RunSynchronously
+            if nextParam.reviewed = false then
+                t.AddMemberDelayed(getReviewed nextParam t)
+            if int nextParam.ProteinExistence = 0 then
+                t.AddMemberDelayed(getByProteinExistence nextParam t)
+
+            let cursor = getCursor nextParam |> Async.RunSynchronously
             if cursor.IsSome then
-                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
-                t.AddMemberDelayed(getNext nextParam t)
+                let nextNextParam = nextParam.Clone() in nextNextParam.cursor <- cursor.Value
+                t.AddMemberDelayed(getNext nextNextParam t)
             outerType.AddMember(t)
 
             let m = ProvidedMethod(
@@ -169,8 +179,9 @@ module internal InnerTypes =
             m
         )
         byOrganism
+
     /// Generates a method to find proteins related to the taxonomy entry
-    let getFindRelated (param : Params) (outerType: ProvidedTypeDefinition) () =
+    and getFindRelated (param : Params) (outerType: ProvidedTypeDefinition) () =
         let t = ProvidedTypeDefinition(
             "InnerType" + string(nextNumber()),
             Some typeof<obj>
@@ -178,8 +189,11 @@ module internal InnerTypes =
         let result = getProteinsByKeyWord param |> Async.RunSynchronously
         t.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         t.AddMembersDelayed(getProteinProperties result.results)
-        t.AddMemberDelayed(getReviewed param t)
-        t.AddMemberDelayed(getByProteinExistence param t)
+
+        if param.reviewed = false then
+            t.AddMemberDelayed(getReviewed param t)
+        if int param.ProteinExistence = 0 then
+            t.AddMemberDelayed(getByProteinExistence param t)
 
         let cursor = getCursor param |> Async.RunSynchronously
         if cursor.IsSome then
