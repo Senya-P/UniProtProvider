@@ -78,4 +78,36 @@ let ``It is possible to iterate through array values`` () =
 let ``Equals compares values`` () =
     let humanProtein1 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.``Homo sapiens (9606)``
     let humanProtein2 = UniProtProvider.ByOrganism<"human">().``Homo sapiens (9606)``.``Homo sapiens (9606)``
-    Assert.AreEqual(humanProtein1.Equals(humanProtein2), true)
+    Assert.AreEqual(humanProtein1.Equals humanProtein2, true)
+
+
+// define an alias for readability
+type Inulin =  UniProtProvider.ByKeyWord<"inulin">
+
+[<Test>]
+let ``Protein results are of the same type and can be stored in an array`` () =
+    let humanInulin = Inulin().ByOrganism<"human">().``Regenerating islet-derived protein 3-gamma (REG3G_HUMAN)``
+    let mouseInulin = Inulin().ByOrganism<"mouse">().``Regenerating islet-derived protein 3-gamma (REG3G_MOUSE)``
+    let ratInulin = Inulin().ByOrganism<"rat">().``Regenerating islet-derived protein 3-gamma (REG3G_RAT)``
+    let inulins = [|humanInulin, mouseInulin, ratInulin|]
+    for i in inulins do 
+        Assert.AreEqual(true, true)
+
+[<Test>]
+let ``Values can be reassigned`` () =
+    let mutable humanInulin = Inulin().ByOrganism<"human">().``Regenerating islet-derived protein 3-gamma (REG3G_HUMAN)``
+    let mouseInulin = Inulin().ByOrganism<"mouse">().``Regenerating islet-derived protein 3-gamma (REG3G_MOUSE)``
+    humanInulin <- mouseInulin
+    Assert.AreEqual(humanInulin.Equals mouseInulin, true)
+
+[<Test>]
+let ``Obtaining reviewed only protein results is available`` () =
+    let humanInulin1 = UniProtProvider.ByKeyWord<"inulin">().ByOrganism<"human">().Reviewed().``Regenerating islet-derived protein 3-gamma (REG3G_HUMAN)``
+    let humanInulin2 = UniProtProvider.ByKeyWord<"inulin">().Reviewed().ByOrganism<"human">().``Regenerating islet-derived protein 3-gamma (REG3G_HUMAN)``
+    Assert.AreEqual(humanInulin1.Equals humanInulin2, true)
+
+[<Test>]
+let ``Filtering by protein existence is available`` () =
+    let humanInulin1 = UniProtProvider.ByKeyWord<"inulin">().ByProteinExistence<ProteinExistence.EvidenceAtProteinLevel>().``Regenerating islet-derived protein 3-gamma (REG3G_HUMAN)``
+    let humanInulin2 = UniProtProvider.ByKeyWord<"inulin">().``Regenerating islet-derived protein 3-gamma (REG3G_HUMAN)``
+    Assert.AreEqual(humanInulin1.Equals humanInulin2, true)
