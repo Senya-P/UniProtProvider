@@ -1,9 +1,6 @@
 namespace UniProtProvider.DesignTime
 open ProviderImplementation.ProvidedTypes
-open UniProtProvider.RunTime
-open Client.UniProtClient
-open Types
-
+open Client
 // --------------------------------------------------------------------------------------
 // Nested types used for type provider generation
 // --------------------------------------------------------------------------------------
@@ -75,8 +72,71 @@ module internal InnerTypes =
             propertyType = next,
             getterCode = (fun _ -> <@@ obj() @@>)
         )
+
+    and getReviewed (param : Params) (outerType: ProvidedTypeDefinition) () =
+        let t = ProvidedTypeDefinition(
+            "InnerType" + string(nextNumber()),
+            Some typeof<obj>
+        )
+        param.reviewed <- true
+
+        let result: UniProtKBIncompleteResult = getProteinsByKeyWord param |> Async.RunSynchronously
+        t.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
+        t.AddMembersDelayed(getProteinProperties result.results)
+        t.AddMemberDelayed(getByProteinExistence param t)
+
+        if param.taxonId = null && param.organism = null then
+            t.AddMemberDelayed(getByOrganism param t)
+
+        let cursor = getCursor param |> Async.RunSynchronously
+        if cursor.IsSome then
+            let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+            t.AddMemberDelayed(getNext nextParam t)
+        outerType.AddMember(t)
+
+        ProvidedMethod(
+            methodName="Reviewed",
+            parameters = [],
+            returnType = t,
+            invokeCode = (fun _ -> <@@ obj() @@>)
+        )
+
+    and getByProteinExistence (param: Params) (outerType: ProvidedTypeDefinition) () = 
+        let byProteinExistence = ProvidedMethod("ByProteinExistence", [], typeof<obj>)
+        byProteinExistence.DefineStaticParameters(
+            [ProvidedStaticParameter("Existence", typeof<ProteinExistence>)], 
+            fun methName args ->
+            let existence = args.[0] :?> ProteinExistence
+            param.ProteinExistence <- existence
+
+            let t = ProvidedTypeDefinition(
+                "InnerType" + string(nextNumber()),
+                Some typeof<obj>,
+                true)
+            let result = getProteinsByKeyWord param |> Async.RunSynchronously
+            t.AddMembersDelayed(getProteinProperties result.results)
+            t.AddMemberDelayed(getReviewed param outerType)
+
+            let cursor = getCursor param |> Async.RunSynchronously
+            if cursor.IsSome then
+                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+                t.AddMemberDelayed(getNext nextParam t)
+            outerType.AddMember(t)
+
+            let m = ProvidedMethod(
+                methName, 
+                [], 
+                t, 
+                invokeCode = fun _ -> <@@ obj() @@>
+            )
+            outerType.AddMember(m)
+            m
+        )
+        byProteinExistence
+
+
     /// Generates a method to retrieve proteins by organism name
-    let getByOrganism (param : Params) (outerType: ProvidedTypeDefinition) () = 
+    and getByOrganism (param : Params) (outerType: ProvidedTypeDefinition) () = 
         let byOrganism = ProvidedMethod("ByOrganism", [], typeof<obj>)
         byOrganism.DefineStaticParameters(
             [ProvidedStaticParameter("Name", typeof<string>)], 
@@ -90,6 +150,8 @@ module internal InnerTypes =
                 true)
             let result = getProteinsByKeyWord param |> Async.RunSynchronously
             t.AddMembersDelayed(getProteinProperties result.results)
+            t.AddMemberDelayed(getReviewed param t)
+            t.AddMemberDelayed(getByProteinExistence param t)
 
             let cursor = getCursor param |> Async.RunSynchronously
             if cursor.IsSome then
@@ -116,6 +178,8 @@ module internal InnerTypes =
         let result = getProteinsByKeyWord param |> Async.RunSynchronously
         t.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
         t.AddMembersDelayed(getProteinProperties result.results)
+        t.AddMemberDelayed(getReviewed param t)
+        t.AddMemberDelayed(getByProteinExistence param t)
 
         let cursor = getCursor param |> Async.RunSynchronously
         if cursor.IsSome then
@@ -172,11 +236,14 @@ module internal InnerTypes =
             let suggested =  ProvidedTypeDefinition(
                 "InnerType" + string(nextNumber()),
                 Some typeof<obj>,
-                hideObjectMethods=true)
+                hideObjectMethods=true
+            )
 
             suggested.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
             suggested.AddMembersDelayed(getProteinProperties result.results)
             suggested.AddMemberDelayed(getByOrganism param suggested)
+            suggested.AddMemberDelayed(getReviewed param suggested)
+            suggested.AddMemberDelayed(getByProteinExistence param suggested)
 
             let cursor = getCursor param |> Async.RunSynchronously
             if cursor.IsSome then

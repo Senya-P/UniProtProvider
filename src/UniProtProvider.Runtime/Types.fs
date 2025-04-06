@@ -1,11 +1,19 @@
-namespace Types
+namespace global
 // --------------------------------------------------------------------------------------
 // Types used to back the UniProKB data schema
 // Retrieved from: https://www.uniprot.org/api-documentation/uniprotkb#schemas
 // --------------------------------------------------------------------------------------
 
-type DataSource(filename:string) = 
+type private DataSource(filename:string) = 
     member this.FileName = filename
+
+type ProteinExistence =
+    | None = 0
+    | EvidenceAtProteinLevel = 1
+    | EvidenceAtTranscriptLevel = 2
+    | InferredFromHomology = 3
+    | Predicted = 4
+    | Uncertain = 5
 
 type Evidence = 
     {

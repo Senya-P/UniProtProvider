@@ -2,8 +2,7 @@ namespace UniProtProvider.DesignTime
 
 open System.Reflection
 open FSharp.Core.CompilerServices
-open Client.UniProtClient
-open Types
+open Client
 open ProviderImplementation.ProvidedTypes
 open UniProtProvider.DesignTime.InnerTypes
 
@@ -160,6 +159,9 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         else
             prot.AddMembersDelayed(getProteinProperties result.results)
             prot.AddMemberDelayed(getByOrganism param prot)
+            prot.AddMemberDelayed(getReviewed param prot)
+            prot.AddMemberDelayed(getByProteinExistence param prot)
+
             let cursor = getCursor param |> Async.RunSynchronously
             if cursor.IsSome then
                 let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
