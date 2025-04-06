@@ -84,7 +84,7 @@ module private Helpers =
         | false -> ()
         | true -> parts <- "+AND+" + LEFT_PARENTHESIS + "reviewed" + COLON + "true" + RIGHT_PARENTHESIS :: parts
 
-        if param.ProteinExistence <> ProteinExistence.None then
+        if int param.ProteinExistence <> 0 then
             parts <- "+AND+" + LEFT_PARENTHESIS + "existence" + COLON + string(int param.ProteinExistence) + RIGHT_PARENTHESIS :: parts
 
         let result = System.String.Concat(parts |> List.rev |> List.toArray)

@@ -8,7 +8,6 @@ type private DataSource(filename:string) =
     member this.FileName = filename
 
 type ProteinExistence =
-    | None = 0
     | EvidenceAtProteinLevel = 1
     | EvidenceAtTranscriptLevel = 2
     | InferredFromHomology = 3
