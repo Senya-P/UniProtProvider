@@ -149,7 +149,7 @@ type ByKeyWord (config : TypeProviderConfig) as this =
         prot.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
 
         let keyword = unbox<string> args.[0]
-        let param = Params keyword
+        let param = Params.Create(keyword, Entity.Protein)
         let result = getProteinsByKeyWord param |> Async.RunSynchronously
 
         if result.results.Length = 0 then
@@ -162,9 +162,9 @@ type ByKeyWord (config : TypeProviderConfig) as this =
             prot.AddMemberDelayed(getReviewed param prot)
             prot.AddMemberDelayed(getByProteinExistence param prot)
 
-            let cursor = getCursor param |> Async.RunSynchronously
-            if cursor.IsSome then
-                let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+            let newCursor = getCursor param |> Async.RunSynchronously
+            if newCursor.IsSome then
+                let nextParam = {param with cursor = Some newCursor.Value}
                 prot.AddMemberDelayed(getNext nextParam prot)
 
         retrieveByKeyWord.AddMember prot
@@ -206,13 +206,13 @@ type ByOrganism (config : TypeProviderConfig) as this =
         taxon.AddMember(ProvidedConstructor([], fun _ -> <@@ obj() @@>))
 
         let organismName = unbox<string> args.[0]
-        let param = Params organismName
+        let param = Params.Create(organismName, Entity.Taxonomy)
         let result = getOrganismsByKeyWord param |> Async.RunSynchronously
 
         taxon.AddMembersDelayed(getOrganismResults result.results taxon)
-        let cursor = getCursor param |> Async.RunSynchronously
-        if cursor.IsSome then
-            let nextParam = param.Clone() in nextParam.cursor <- cursor.Value
+        let newCursor = getCursor param |> Async.RunSynchronously
+        if newCursor.IsSome then
+            let nextParam = {param with cursor = Some newCursor.Value}
             taxon.AddMemberDelayed(getNext nextParam taxon)
 
         retrieveByOrganism.AddMember taxon

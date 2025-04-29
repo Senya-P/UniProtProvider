@@ -18,16 +18,22 @@ type Entity =
 | Protein
 
 /// Represents parameters for the query
-type Params(keyword : string) =
-    member x.keyword = keyword
-    [<DefaultValue>] val mutable entity : Entity
-    [<DefaultValue>] val mutable organism : string
-    [<DefaultValue>] val mutable taxonId : string
-    [<DefaultValue>] val mutable cursor : string
-    [<DefaultValue>] val mutable reviewed : bool
-    [<DefaultValue>] val mutable ProteinExistence : ProteinExistence
-
-    member this.Clone() = this.MemberwiseClone() :?> Params
+type Params = 
+  { keyword : string
+    entity : Entity
+    organism : option<string>
+    taxonId : option<string>
+    cursor : option<string>
+    reviewed : bool
+    ProteinExistence : option<ProteinExistence> }
+    static member Create(keyword: string, entity: Entity) =
+      { keyword = keyword
+        entity = entity
+        organism = None
+        taxonId = None
+        cursor = None
+        reviewed = false
+        ProteinExistence = None }
 
 
 module private Helpers = 
@@ -66,26 +72,29 @@ module private Helpers =
         | Entity.Taxonomy -> parts <- "&fields=id,scientific_name" :: parts
 
         match param.cursor with
-        | null -> ()
-        | value -> parts <- "&cursor=" + value :: parts
+        | None -> ()
+        | Some value -> parts <- "&cursor=" + value :: parts
 
         parts <- "&query=" :: parts
         parts <- param.keyword :: parts
 
         match param.taxonId with 
-        | null -> ()
-        | value ->  parts <- LEFT_PARENTHESIS + "taxonomy_id" + COLON + value + RIGHT_PARENTHESIS :: parts
+        | None -> ()
+        | Some value ->  parts <- LEFT_PARENTHESIS + "taxonomy_id" + COLON + value + RIGHT_PARENTHESIS :: parts
 
         match param.organism with 
-        | null -> ()
-        | value ->  parts <- "+AND+" + LEFT_PARENTHESIS + "organism_name" + COLON + value + RIGHT_PARENTHESIS :: parts
+        | None -> ()
+        | Some value ->  parts <- "+AND+" + LEFT_PARENTHESIS + "organism_name" + COLON + value + RIGHT_PARENTHESIS :: parts
 
         match param.reviewed with
         | false -> ()
         | true -> parts <- "+AND+" + LEFT_PARENTHESIS + "reviewed" + COLON + "true" + RIGHT_PARENTHESIS :: parts
 
-        if int param.ProteinExistence <> 0 then
-            parts <- "+AND+" + LEFT_PARENTHESIS + "existence" + COLON + string(int param.ProteinExistence) + RIGHT_PARENTHESIS :: parts
+        match param.ProteinExistence with
+        | None -> ()
+        | Some value ->
+            if int value <> 0 then
+                parts <- "+AND+" + LEFT_PARENTHESIS + "existence" + COLON + string(int value) + RIGHT_PARENTHESIS :: parts
 
         let result = System.String.Concat(parts |> List.rev |> List.toArray)
         result
@@ -128,12 +137,10 @@ let private getResults<'T> (entity: Entity) (param: Params)  = async {
 }
 
 let getProteinsByKeyWord (param: Params) =
-    param.entity <- Entity.Protein
     getResults<UniProtKBIncompleteResult> Protein param
 
 let getOrganismsByKeyWord (param: Params) =
-    param.entity <- Entity.Taxonomy
-    getResults<TaxonomyIncompleteResult>  Taxonomy param 
+    getResults<TaxonomyIncompleteResult> Taxonomy param
 
 /// Retrieves the cursor for the next set of results
 let getCursor (param: Params) = async {
