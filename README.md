@@ -28,12 +28,12 @@ dotnet test
 
 Add to your project:
 ```
-dotnet add package UniProtProvider --version 1.0.7
+dotnet add package UniProtProvider --version 1.0.10
 ```
 
 Or reference from an F# interactive (.fsi) file
 ```
-#r "nuget: UniProtProvider, 1.0.7"
+#r "nuget: UniProtProvider, 1.0.10"
 ```
 
 It is possible to use UniProtProvider inside [Polyglot notebooks](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode).
