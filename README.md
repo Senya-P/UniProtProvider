@@ -6,6 +6,8 @@ UniProtProvider is a F# type provider for [uniprot.org](https://www.uniprot.org/
 
 The UniProtProvider provides access to protein entries (UniProtKB) with the support of Taxonomy data.
 
+For the development guide, check out the [UniProtProvider wiki](https://github.com/Senya-P/UniProtProvider/wiki).
+
 ## Install from sources
 
 Dependencies: .NET runtime 5.0+, change inside `UniProtProvider/global.json`
