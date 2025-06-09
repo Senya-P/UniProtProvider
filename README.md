@@ -33,7 +33,7 @@ Add to your project:
 dotnet add package UniProtProvider --version 1.0.10
 ```
 
-Or reference from an F# interactive (.fsi) file
+Or reference from an F# script (.fsx) file
 ```
 #r "nuget: UniProtProvider, 1.0.10"
 ```
